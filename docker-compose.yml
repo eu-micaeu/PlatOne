@@ -1,0 +1,46 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app/frontend
+    command: sh -c "npm install && npx tsx watch server.ts"
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      BACKEND_URL: http://backend:8080
+      DISABLE_HMR: "false"
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "100"
+      WATCHPACK_POLLING: "true"
+      WATCHPACK_POLLING_INTERVAL: "100"
+    volumes:
+      - ./frontend/react:/app/frontend
+      - frontend_node_modules:/app/frontend/node_modules
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  backend:
+    image: golang:1.25-alpine
+    working_dir: /app/backend
+    command: sh -c "go mod tidy && go run main.go"
+    ports:
+      - "8080:8080"
+    environment:
+      GO_ENV: development
+      MONGO_URI: mongodb://mongodb:27017
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend/go:/app/backend
+
+volumes:
+  frontend_node_modules:
+  mongodb_data:

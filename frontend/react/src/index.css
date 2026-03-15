@@ -1,0 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@500;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Syne", "Space Grotesk", ui-sans-serif, sans-serif;
+}
+
+:root {
+  --bg-main: #f7f4ec;
+  --ink-main: #1f2226;
+  --brand-cyan: #3fa9c9;
+  --brand-gold: #f1c34a;
+  --brand-rose: #d6806a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 8% 10%, rgba(63, 169, 201, 0.22), transparent 30%),
+    radial-gradient(circle at 88% 18%, rgba(241, 195, 74, 0.2), transparent 34%),
+    radial-gradient(circle at 52% 95%, rgba(214, 128, 106, 0.2), transparent 36%),
+    var(--bg-main);
+  color: var(--ink-main);
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.atmosphere-grid {
+  background-image:
+    linear-gradient(rgba(31, 34, 38, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 34, 38, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent 80%);
+}
+
+.glass-panel {
+  border: 1px solid rgba(31, 34, 38, 0.14);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.58));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.55) inset,
+    0 20px 45px rgba(31, 34, 38, 0.08);
+  backdrop-filter: blur(8px);
+  border-radius: 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
