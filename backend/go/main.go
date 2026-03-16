@@ -85,11 +85,14 @@ func main() {
 
 	mux.HandleFunc("POST /api/sync/{userID}", func(w http.ResponseWriter, r *http.Request) {
 		userID := r.PathValue("userID")
-		if err := svc.SyncUserGames(r.Context(), userID); err != nil {
-			http.Error(w, "Erro ao sincronizar jogos", http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusNoContent)
+		go func() {
+			bgCtx, bgCancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			defer bgCancel()
+			if err := svc.SyncUserGames(bgCtx, userID); err != nil {
+				log.Printf("Erro na sincronização Steam para steamID=%s: %v", userID, err)
+			}
+		}()
+		w.WriteHeader(http.StatusAccepted)
 	})
 
 	mux.HandleFunc("POST /api/platinum", func(w http.ResponseWriter, r *http.Request) {

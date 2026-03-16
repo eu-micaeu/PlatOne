@@ -41,21 +41,22 @@ type PSNAccount struct {
 
 // Game representa um jogo em uma plataforma específica
 type Game struct {
-	ID                primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Title             string             `bson:"title" json:"title"`
-	Platform          string             `bson:"platform" json:"platform"` // steam, xbox, psn
-	ExternalID        string             `bson:"external_id" json:"external_id"`
-	TotalAchievements int                `bson:"total_achievements" json:"total_achievements"`
+	ID                primitive.ObjectID     `bson:"_id,omitempty" json:"id"`
+	Title             string                 `bson:"title" json:"title"`
+	Platform          string                 `bson:"platform" json:"platform"` // steam, xbox, psn
+	ExternalID        string                 `bson:"external_id" json:"external_id"`
+	TotalAchievements int                    `bson:"total_achievements" json:"total_achievements"`
 	Metadata          map[string]interface{} `bson:"metadata" json:"metadata"` // Dados específicos da API
 }
 
 // Platinum registra a conquista de 100%
 type Platinum struct {
-	ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	UserID         primitive.ObjectID `bson:"user_id" json:"user_id"`
-	GameID         primitive.ObjectID `bson:"game_id" json:"game_id"`
-	Platform       string             `bson:"platform" json:"platform"`
-	UnlockedCount  int                `bson:"unlocked_count" json:"unlocked_count"`
-	IsPlatinum     bool               `bson:"is_platinum" json:"is_platinum"`
-	ValidationDate time.Time          `bson:"validation_date" json:"validation_date"`
+	ID             primitive.ObjectID     `bson:"_id,omitempty" json:"id"`
+	UserID         primitive.ObjectID     `bson:"user_id" json:"user_id"`
+	GameID         primitive.ObjectID     `bson:"game_id" json:"game_id"`
+	Platform       string                 `bson:"platform" json:"platform"`
+	UnlockedCount  int                    `bson:"unlocked_count" json:"unlocked_count"`
+	IsPlatinum     bool                   `bson:"is_platinum" json:"is_platinum"`
+	ValidationDate time.Time              `bson:"validation_date" json:"validation_date"`
+	Metadata       map[string]interface{} `bson:"metadata,omitempty" json:"metadata,omitempty"`
 }

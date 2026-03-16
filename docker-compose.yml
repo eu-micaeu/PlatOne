@@ -15,6 +15,7 @@ services:
     environment:
       NODE_ENV: development
       BACKEND_URL: http://backend:8080
+      APP_BASE_URL: http://localhost:3000
       DISABLE_HMR: "false"
       CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "100"
@@ -36,6 +37,7 @@ services:
     environment:
       GO_ENV: development
       MONGO_URI: mongodb://mongodb:27017
+      STEAM_API_KEY: ${STEAM_API_KEY:-}
     depends_on:
       - mongodb
     volumes:

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode, type SyntheticEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   CheckCircle2,
@@ -31,6 +31,8 @@ interface Platinum {
   isPlatinum: boolean;
   date: string | null;
   icon: string;
+  backupIcon: string | null;
+  fallbackIcon: string;
 }
 
 interface Stats {
@@ -51,6 +53,12 @@ interface AuthResponse {
   user: AuthUser;
 }
 
+interface SteamStatus {
+  connected: boolean;
+  steamId: string | null;
+  linkedAt: string | null;
+}
+
 type StatusFilter = 'all' | 'platinum' | 'progress';
 
 type ViewMode = 'grid' | 'list';
@@ -64,6 +72,12 @@ const STATUS_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
   { value: 'platinum', label: 'Platinado' },
   { value: 'progress', label: 'Progresso' },
 ];
+
+const DEFAULT_STEAM_STATUS: SteamStatus = {
+  connected: false,
+  steamId: null,
+  linkedAt: null,
+};
 
 export default function App() {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
@@ -81,6 +95,9 @@ export default function App() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
+  const [steamStatus, setSteamStatus] = useState<SteamStatus>(DEFAULT_STEAM_STATUS);
+  const [steamLoading, setSteamLoading] = useState(false);
+  const [steamError, setSteamError] = useState<string | null>(null);
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [query, setQuery] = useState('');
@@ -133,6 +150,26 @@ export default function App() {
     }
   }, [authHeaders, authToken]);
 
+  const fetchSteamStatus = useCallback(async () => {
+    if (!authToken) {
+      setSteamStatus(DEFAULT_STEAM_STATUS);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/steam/status', { headers: authHeaders });
+      if (!response.ok) {
+        throw new Error('Falha ao consultar status da Steam.');
+      }
+
+      const payload = (await response.json()) as Partial<SteamStatus>;
+      setSteamStatus(normalizeSteamStatus(payload));
+    } catch (error) {
+      console.error('Error fetching Steam status:', error);
+      setSteamStatus(DEFAULT_STEAM_STATUS);
+    }
+  }, [authHeaders, authToken]);
+
   useEffect(() => {
     const checkSession = async () => {
       if (!authToken) {
@@ -169,11 +206,72 @@ export default function App() {
       setStats(null);
       setDataError(null);
       setLoadingData(false);
+      setSteamStatus(DEFAULT_STEAM_STATUS);
+      setSteamLoading(false);
+      setSteamError(null);
       return;
     }
 
     fetchDashboardData();
-  }, [fetchDashboardData, isAuthenticated]);
+    fetchSteamStatus();
+  }, [fetchDashboardData, fetchSteamStatus, isAuthenticated]);
+
+  const handleSyncSteam = useCallback(async () => {
+    if (!authToken || steamLoading) {
+      return;
+    }
+
+    setSteamLoading(true);
+    setSteamError(null);
+
+    try {
+      const response = await fetch('/api/sync/me', {
+        method: 'POST',
+        headers: authHeaders,
+      });
+
+      if (!response.ok) {
+        const message = await readErrorMessage(response, 'Nao foi possivel sincronizar com a Steam.');
+        throw new Error(message);
+      }
+
+      // Sync roda em background no servidor — faz polling do dashboard para mostrar os dados chegando
+      for (let i = 0; i <= 5; i++) {
+        if (i > 0) await new Promise<void>((r) => setTimeout(r, 4000));
+        await fetchDashboardData();
+      }
+    } catch (error) {
+      console.error('Steam sync failed:', error);
+      setSteamError(error instanceof Error ? error.message : 'Falha ao sincronizar a Steam.');
+    } finally {
+      setSteamLoading(false);
+    }
+  }, [authHeaders, authToken, fetchDashboardData, steamLoading]);
+
+  useEffect(() => {
+    if (!isAuthenticated || typeof window === 'undefined') {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const steamResult = params.get('steam');
+    if (!steamResult) {
+      return;
+    }
+
+    if (steamResult === 'connected') {
+      setSteamError(null);
+      fetchSteamStatus();
+      handleSyncSteam();
+    } else {
+      setSteamError('Nao foi possivel conectar sua conta Steam. Tente novamente.');
+    }
+
+    params.delete('steam');
+    const query = params.toString();
+    const updatedURL = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+    window.history.replaceState({}, document.title, updatedURL);
+  }, [fetchSteamStatus, handleSyncSteam, isAuthenticated]);
 
   const totalAchievements = useMemo(
     () => platinums.reduce((acc, game) => acc + game.total, 0),
@@ -306,10 +404,71 @@ export default function App() {
     }
   };
 
+  const handleConnectSteam = async () => {
+    if (!authToken) {
+      return;
+    }
+
+    setSteamLoading(true);
+    setSteamError(null);
+
+    try {
+      const response = await fetch('/api/steam/connect', {
+        method: 'POST',
+        headers: authHeaders,
+      });
+
+      if (!response.ok) {
+        const message = await readErrorMessage(response, 'Nao foi possivel iniciar conexao com a Steam.');
+        throw new Error(message);
+      }
+
+      const payload = (await response.json()) as { url?: string };
+      if (!payload.url) {
+        throw new Error('Resposta invalida da conexao Steam.');
+      }
+
+      window.location.assign(payload.url);
+    } catch (error) {
+      console.error('Steam connect failed:', error);
+      setSteamError(error instanceof Error ? error.message : 'Falha ao conectar com a Steam.');
+      setSteamLoading(false);
+    }
+  };
+
+  const handleDisconnectSteam = async () => {
+    if (!authToken) {
+      return;
+    }
+
+    setSteamLoading(true);
+    setSteamError(null);
+
+    try {
+      const response = await fetch('/api/steam/disconnect', {
+        method: 'POST',
+        headers: authHeaders,
+      });
+
+      if (!response.ok) {
+        const message = await readErrorMessage(response, 'Nao foi possivel desconectar a Steam.');
+        throw new Error(message);
+      }
+
+      setSteamStatus(DEFAULT_STEAM_STATUS);
+      await fetchDashboardData();
+    } catch (error) {
+      console.error('Steam disconnect failed:', error);
+      setSteamError(error instanceof Error ? error.message : 'Falha ao desconectar da Steam.');
+    } finally {
+      setSteamLoading(false);
+    }
+  };
+
   if (authChecking) {
     return (
       <BackgroundLayout>
-        <div className="mx-auto flex min-h-screen w-full max-w-4xl items-center justify-center px-4">
+        <div className="mx-auto flex w-full max-w-4xl flex-1 items-center justify-center px-4">
           <div className="glass-panel flex items-center gap-3 px-6 py-4">
             <LoaderCircle className="animate-spin text-black/45" size={18} />
             <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-black/60">
@@ -324,7 +483,7 @@ export default function App() {
   if (!isAuthenticated) {
     return (
       <BackgroundLayout>
-        <main className="mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-10 sm:px-6 lg:px-8">
+        <main className="mx-auto flex w-full max-w-6xl flex-1 items-center px-4 py-10 sm:px-6 lg:px-8">
           <div className="grid w-full gap-6 lg:grid-cols-2">
             <motion.section
               initial={{ opacity: 0, y: 20 }}
@@ -504,14 +663,45 @@ export default function App() {
             <span className="hidden rounded-full bg-black/6 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-black/65 sm:inline-flex">
               {user?.name}
             </span>
-            <button
-              className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white"
-              type="button"
-              onClick={fetchDashboardData}
+            <span
+              className={`hidden rounded-full px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] sm:inline-flex ${
+                steamStatus.connected ? 'bg-emerald-500/12 text-emerald-700' : 'bg-amber-500/12 text-amber-700'
+              }`}
             >
-              <RefreshCw size={14} />
-              Sync Feed
-            </button>
+              {steamStatus.connected ? 'Steam conectada' : 'Steam pendente'}
+            </span>
+            {steamStatus.connected ? (
+              <button
+                className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                onClick={handleSyncSteam}
+                disabled={steamLoading || loadingData}
+              >
+                <RefreshCw size={14} className={steamLoading ? 'animate-spin' : ''} />
+                Sync Steam
+              </button>
+            ) : (
+              <button
+                className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                onClick={handleConnectSteam}
+                disabled={steamLoading}
+              >
+                {steamLoading ? <LoaderCircle size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+                Conectar Steam
+              </button>
+            )}
+            {steamStatus.connected && (
+              <button
+                className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                onClick={handleDisconnectSteam}
+                disabled={steamLoading}
+              >
+                <LogOut size={14} />
+                Desconectar Steam
+              </button>
+            )}
             <button
               className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white"
               type="button"
@@ -524,14 +714,21 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-8 sm:px-6 lg:px-8 lg:pt-10">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-10 pt-8 sm:px-6 lg:px-8 lg:pt-10">
+        {steamError && (
+          <div className="mb-5 rounded-xl border border-amber-300/55 bg-amber-100/55 px-4 py-3 text-sm text-amber-800">
+            {steamError}
+          </div>
+        )}
+
         <motion.section
           initial={{ opacity: 0, y: 26 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55 }}
           className="mb-8 grid gap-5 lg:grid-cols-3"
         >
-          <div className="glass-panel p-6 sm:p-8 lg:col-span-2">
+
+          <div className="glass-panel w-full p-6 sm:p-8 lg:col-span-3">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-black/5 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.24em] text-black/60">
               <Sparkles size={12} />
               Performance Snapshot
@@ -541,7 +738,7 @@ export default function App() {
               Seu painel de
               <span className="text-[var(--brand-gold)]"> conquista total</span>
             </h1>
-            <p className="mt-4 max-w-2xl text-sm text-black/70 sm:text-base">
+            <p className="mt-4 max-w-4xl text-sm text-black/70 sm:text-base">
               Veja progresso, platinas concluidas e pontos de atencao em um dashboard criado para leitura rapida,
               comparacao entre plataformas e foco no proximo 100%.
             </p>
@@ -552,34 +749,7 @@ export default function App() {
               <StatTile label="No mes" value={monthlyPlatinums} helper="Platinas recentes" />
             </div>
           </div>
-
-          <div className="glass-panel flex flex-col justify-between p-6 sm:p-7">
-            <div>
-              <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-black/50">
-                <TrendingUp size={14} />
-                Completion Rate
-              </div>
-              <p className="font-display text-5xl leading-none">{completionRate}%</p>
-              <p className="mt-2 text-sm text-black/60">
-                {unlockedAchievements} de {totalAchievements} conquistas liberadas
-              </p>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              <div className="h-2 overflow-hidden rounded-full bg-black/10">
-                <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-[var(--brand-cyan)] via-[var(--brand-gold)] to-[var(--brand-rose)]"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${completionRate}%` }}
-                  transition={{ duration: 1.1, ease: 'easeOut', delay: 0.2 }}
-                />
-              </div>
-              <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.15em] text-black/50">
-                <span>Em progresso: {progressGames}</span>
-                <span>Status: online</span>
-              </div>
-            </div>
-          </div>
+          
         </motion.section>
 
         <motion.section
@@ -687,7 +857,9 @@ export default function App() {
         {!loadingData && !dataError && filteredPlatinums.length > 0 && (
           <div
             className={
-              viewMode === 'grid' ? 'grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3' : 'space-y-3'
+              viewMode === 'grid'
+                ? 'grid grid-cols-1 justify-items-center gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
+                : 'space-y-3'
             }
           >
             <AnimatePresence mode="popLayout">
@@ -711,7 +883,7 @@ export default function App() {
 
 function BackgroundLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[var(--bg-main)] text-[var(--ink-main)] selection:bg-[var(--ink-main)] selection:text-[var(--bg-main)]">
+    <div className="relative flex min-h-dvh flex-col overflow-x-hidden bg-[var(--bg-main)] text-[var(--ink-main)] selection:bg-[var(--ink-main)] selection:text-[var(--bg-main)]">
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute left-[-15%] top-[-8%] h-[420px] w-[420px] rounded-full bg-[var(--brand-cyan)]/20 blur-3xl" />
         <div className="absolute right-[-12%] top-[12%] h-[340px] w-[340px] rounded-full bg-[var(--brand-gold)]/20 blur-3xl" />
@@ -750,15 +922,18 @@ function StatTile({
   );
 }
 
+type GameCardProps = {
+  key?: string;
+  game: Platinum;
+  viewMode: ViewMode;
+  order: number;
+};
+
 function GameCard({
   game,
   viewMode,
   order,
-}: {
-  game: Platinum;
-  viewMode: ViewMode;
-  order: number;
-}) {
+}: GameCardProps) {
   const completion = game.total > 0 ? Math.round((game.unlocked / game.total) * 100) : 0;
 
   if (viewMode === 'list') {
@@ -769,13 +944,18 @@ function GameCard({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ delay: order * 0.03, duration: 0.28 }}
-        className="glass-panel flex items-center gap-4 p-4 sm:gap-6"
+        className="glass-panel flex items-center gap-3 p-3.5 sm:gap-5 sm:p-4"
       >
-        <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-zinc-200">
+        <div className="h-14 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-zinc-200 sm:h-16 sm:w-28">
           <img
             src={game.icon}
             alt={game.title}
             className="h-full w-full object-cover"
+            data-backup-src={game.backupIcon ?? ''}
+            data-fallback-src={game.fallbackIcon}
+            onError={handleGameImageError}
+            loading="lazy"
+            decoding="async"
             referrerPolicy="no-referrer"
           />
         </div>
@@ -836,13 +1016,18 @@ function GameCard({
       exit={{ opacity: 0, scale: 0.9 }}
       transition={{ delay: order * 0.04, duration: 0.32 }}
       whileHover={{ y: -5, rotate: -0.1 }}
-      className="glass-panel group flex cursor-pointer flex-col overflow-hidden"
+      className="glass-panel group flex w-full max-w-[21.5rem] cursor-pointer flex-col overflow-hidden"
     >
       <div className="relative aspect-video overflow-hidden bg-zinc-100">
         <img
           src={game.icon}
           alt={game.title}
           className="h-full w-full object-cover saturate-75 transition-all duration-500 group-hover:scale-105 group-hover:saturate-100"
+          data-backup-src={game.backupIcon ?? ''}
+          data-fallback-src={game.fallbackIcon}
+          onError={handleGameImageError}
+          loading="lazy"
+          decoding="async"
           referrerPolicy="no-referrer"
         />
 
@@ -869,10 +1054,10 @@ function GameCard({
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-5">
-        <h3 className="font-display text-2xl leading-tight">{game.title}</h3>
+      <div className="flex flex-1 flex-col p-4">
+        <h3 className="font-display text-[1.4rem] leading-tight">{game.title}</h3>
 
-        <div className="mt-5 space-y-3">
+        <div className="mt-4 space-y-3">
           <div className="flex items-end justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">
             <span>Progresso</span>
             <span className="font-semibold text-black/80">{completion}%</span>
@@ -903,6 +1088,27 @@ function GameCard({
   );
 }
 
+function handleGameImageError(event: SyntheticEvent<HTMLImageElement>) {
+  const image = event.currentTarget;
+  const currentSrc = image.getAttribute('src') ?? '';
+  const backupSrc = image.dataset.backupSrc?.trim() ?? '';
+  const fallbackSrc = image.dataset.fallbackSrc?.trim() ?? '';
+
+  if (backupSrc && backupSrc !== currentSrc) {
+    image.setAttribute('src', backupSrc);
+    image.dataset.backupSrc = '';
+    return;
+  }
+
+  if (fallbackSrc && fallbackSrc !== currentSrc) {
+    image.setAttribute('src', fallbackSrc);
+    image.dataset.fallbackSrc = '';
+    return;
+  }
+
+  image.onerror = null;
+}
+
 function getStoredToken(): string | null {
   if (typeof window === 'undefined') {
     return null;
@@ -910,7 +1116,10 @@ function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_STORAGE_KEY);
 }
 
-async function readErrorMessage(response: Response): Promise<string> {
+async function readErrorMessage(
+  response: Response,
+  fallback = 'Ocorreu um erro na autenticacao.'
+): Promise<string> {
   try {
     const payload = (await response.json()) as { error?: string };
     if (payload?.error) {
@@ -920,7 +1129,7 @@ async function readErrorMessage(response: Response): Promise<string> {
     console.error('Error parsing API error payload:', parseError);
   }
 
-  return 'Ocorreu um erro na autenticacao.';
+  return fallback;
 }
 
 function formatDate(value: string): string {
@@ -1048,10 +1257,16 @@ function normalizePlatinum(entry: unknown, index: number): Platinum {
     readString(metadata, 'date', 'validation_date') ??
     null;
 
-  const icon =
-    readString(record, 'icon', 'image') ??
-    readString(metadata, 'icon', 'image') ??
-    createFallbackIcon(title);
+  const externalId =
+    readString(record, 'external_id', 'game_id', 'gameId') ?? readString(metadata, 'external_id', 'game_id');
+
+  const storedIcon = readString(record, 'icon', 'image') ?? readString(metadata, 'icon', 'image');
+  const storedBackupIcon =
+    readString(record, 'icon_fallback', 'thumbnail') ?? readString(metadata, 'icon_fallback', 'thumbnail');
+
+  const fallbackIcon = createFallbackIcon(title);
+  const icon = resolvePreferredGameArtwork(platform, externalId, storedIcon ?? storedBackupIcon) ?? storedIcon ?? storedBackupIcon ?? fallbackIcon;
+  const backupIcon = pickBackupGameArtwork(icon, storedBackupIcon ?? storedIcon, fallbackIcon);
 
   return {
     id,
@@ -1062,6 +1277,8 @@ function normalizePlatinum(entry: unknown, index: number): Platinum {
     isPlatinum,
     date,
     icon,
+    backupIcon,
+    fallbackIcon,
   };
 }
 
@@ -1073,6 +1290,63 @@ function normalizeStats(payload: unknown, fallbackTotalGames: number): Stats {
     totalGames: readNumber(record, 'totalGames', 'total_games') ?? fallbackTotalGames,
     lastSync: readString(record, 'lastSync', 'last_sync') ?? new Date().toISOString(),
   };
+}
+
+function normalizeSteamStatus(payload: unknown): SteamStatus {
+  const record = asRecord(payload);
+  const connected = Boolean(readBoolean(record, 'connected'));
+
+  return {
+    connected,
+    steamId: connected ? readString(record, 'steamId', 'steam_id') ?? null : null,
+    linkedAt: connected ? readString(record, 'linkedAt', 'linked_at') ?? null : null,
+  };
+}
+
+function resolvePreferredGameArtwork(
+  platform: string,
+  externalId: string | undefined,
+  image: string | undefined
+): string | undefined {
+  if (platform.toLowerCase() !== 'steam') {
+    return image;
+  }
+
+  return createSteamCapsuleArtwork(externalId) ?? upgradeSteamCommunityIcon(image) ?? image;
+}
+
+function pickBackupGameArtwork(
+  primaryImage: string,
+  backupCandidate: string | undefined,
+  fallbackIcon: string
+): string | null {
+  if (backupCandidate && backupCandidate !== primaryImage) {
+    return backupCandidate;
+  }
+
+  return fallbackIcon !== primaryImage ? fallbackIcon : null;
+}
+
+function createSteamCapsuleArtwork(appId: string | undefined): string | null {
+  const normalizedAppId = appId?.trim() ?? '';
+  if (!/^\d+$/.test(normalizedAppId)) {
+    return null;
+  }
+
+  return `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${normalizedAppId}/capsule_616x353.jpg`;
+}
+
+function upgradeSteamCommunityIcon(image: string | undefined): string | undefined {
+  if (!image) {
+    return undefined;
+  }
+
+  const match = image.match(/\/apps\/(\d+)\/[^/]+\.jpg(?:\?.*)?$/i);
+  if (!match) {
+    return image;
+  }
+
+  return createSteamCapsuleArtwork(match[1]) ?? image;
 }
 
 function createFallbackIcon(title: string): string {
