@@ -16,6 +16,7 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  Trash2,
   TrendingUp,
   Trophy,
   User,
@@ -81,6 +82,7 @@ const DEFAULT_STEAM_STATUS: SteamStatus = {
 
 export default function App() {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
+  const [routePath, setRoutePath] = useState(() => getNormalizedPath());
   const [authToken, setAuthToken] = useState<string | null>(() => getStoredToken());
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
@@ -98,6 +100,8 @@ export default function App() {
   const [steamStatus, setSteamStatus] = useState<SteamStatus>(DEFAULT_STEAM_STATUS);
   const [steamLoading, setSteamLoading] = useState(false);
   const [steamError, setSteamError] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [query, setQuery] = useState('');
@@ -110,6 +114,33 @@ export default function App() {
   );
 
   const isAuthenticated = Boolean(authToken && user);
+  const isHomeRoute = routePath === '/home';
+  const isProfileRoute = routePath === '/profile';
+  const isLoginRoute = routePath === '/login';
+  const isRegisterRoute = routePath === '/register';
+  const isPublicRoute = isLoginRoute || isRegisterRoute;
+  const isPrivateRoute = isHomeRoute || isProfileRoute;
+
+  const navigateTo = useCallback((path: string, replace = false) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const targetPath = normalizePath(path);
+    const currentPath = normalizePath(window.location.pathname);
+    if (targetPath === currentPath) {
+      setRoutePath(targetPath);
+      return;
+    }
+
+    if (replace) {
+      window.history.replaceState({}, document.title, targetPath);
+    } else {
+      window.history.pushState({}, document.title, targetPath);
+    }
+
+    setRoutePath(targetPath);
+  }, []);
 
   const setSessionToken = useCallback((token: string | null) => {
     setAuthToken(token);
@@ -119,6 +150,31 @@ export default function App() {
       localStorage.removeItem(TOKEN_STORAGE_KEY);
     }
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handlePopState = () => {
+      setRoutePath(getNormalizedPath());
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isPublicRoute) {
+      return;
+    }
+
+    setAuthMode(isRegisterRoute ? 'register' : 'login');
+    setAuthError(null);
+  }, [isPublicRoute, isRegisterRoute]);
 
   const fetchDashboardData = useCallback(async () => {
     if (!authToken) {
@@ -199,6 +255,23 @@ export default function App() {
 
     checkSession();
   }, [authHeaders, authToken, setSessionToken]);
+
+  useEffect(() => {
+    if (authChecking) {
+      return;
+    }
+
+    if (isAuthenticated) {
+      if (!isPrivateRoute) {
+        navigateTo('/home', true);
+      }
+      return;
+    }
+
+    if (!isPublicRoute) {
+      navigateTo('/login', true);
+    }
+  }, [authChecking, isAuthenticated, isPrivateRoute, isPublicRoute, navigateTo]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -370,6 +443,7 @@ export default function App() {
       setUser(result.user);
       resetAuthForm();
       setAuthError(null);
+      navigateTo('/home', true);
     } catch (submitError) {
       console.error('Auth request failed:', submitError);
       setAuthError(submitError instanceof Error ? submitError.message : 'Erro ao autenticar.');
@@ -379,7 +453,7 @@ export default function App() {
   };
 
   const handleModeChange = (mode: AuthMode) => {
-    setAuthMode(mode);
+    navigateTo(mode === 'register' ? '/register' : '/login');
     setAuthError(null);
     resetAuthForm();
   };
@@ -397,10 +471,50 @@ export default function App() {
     } finally {
       setSessionToken(null);
       setUser(null);
+      setProfileError(null);
       setQuery('');
       setPlatformFilter('all');
       setStatusFilter('all');
       setViewMode('grid');
+      navigateTo('/login', true);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!authToken || deleteSubmitting) {
+      return;
+    }
+
+    if (!window.confirm('Tem certeza que deseja apagar sua conta? Esta acao nao pode ser desfeita.')) {
+      return;
+    }
+
+    setDeleteSubmitting(true);
+    setProfileError(null);
+
+    try {
+      const response = await fetch('/api/auth/account', {
+        method: 'DELETE',
+        headers: authHeaders,
+      });
+
+      if (!response.ok) {
+        const message = await readErrorMessage(response, 'Nao foi possivel apagar sua conta agora.');
+        throw new Error(message);
+      }
+
+      setSessionToken(null);
+      setUser(null);
+      setQuery('');
+      setPlatformFilter('all');
+      setStatusFilter('all');
+      setViewMode('grid');
+      navigateTo('/login', true);
+    } catch (error) {
+      console.error('Account deletion failed:', error);
+      setProfileError(error instanceof Error ? error.message : 'Falha ao apagar a conta.');
+    } finally {
+      setDeleteSubmitting(false);
     }
   };
 
@@ -467,7 +581,7 @@ export default function App() {
 
   if (authChecking) {
     return (
-      <BackgroundLayout>
+      <>
         <div className="mx-auto flex w-full max-w-4xl flex-1 items-center justify-center px-4">
           <div className="glass-panel flex items-center gap-3 px-6 py-4">
             <LoaderCircle className="animate-spin text-black/45" size={18} />
@@ -476,13 +590,13 @@ export default function App() {
             </span>
           </div>
         </div>
-      </BackgroundLayout>
+      </>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <BackgroundLayout>
+      <>
         <main className="mx-auto flex w-full max-w-6xl flex-1 items-center px-4 py-10 sm:px-6 lg:px-8">
           <div className="grid w-full gap-6 lg:grid-cols-2">
             <motion.section
@@ -639,12 +753,13 @@ export default function App() {
             </motion.section>
           </div>
         </main>
-      </BackgroundLayout>
+      </>
     );
   }
 
   return (
-    <BackgroundLayout>
+    <>
+
       <header className="sticky top-0 z-40 border-b border-black/10 bg-[var(--bg-main)]/75 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
@@ -663,45 +778,30 @@ export default function App() {
             <span className="hidden rounded-full bg-black/6 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-black/65 sm:inline-flex">
               {user?.name}
             </span>
-            <span
-              className={`hidden rounded-full px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] sm:inline-flex ${
-                steamStatus.connected ? 'bg-emerald-500/12 text-emerald-700' : 'bg-amber-500/12 text-amber-700'
+            <button
+              className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
+                isHomeRoute
+                  ? 'border-transparent bg-[var(--ink-main)] text-white'
+                  : 'border-black/10 bg-white/65 text-black/75 hover:bg-white'
               }`}
+              type="button"
+              onClick={() => navigateTo('/home')}
+              disabled={isHomeRoute}
             >
-              {steamStatus.connected ? 'Steam conectada' : 'Steam pendente'}
-            </span>
-            {steamStatus.connected ? (
-              <button
-                className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                type="button"
-                onClick={handleSyncSteam}
-                disabled={steamLoading || loadingData}
-              >
-                <RefreshCw size={14} className={steamLoading ? 'animate-spin' : ''} />
-                Sync Steam
-              </button>
-            ) : (
-              <button
-                className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                type="button"
-                onClick={handleConnectSteam}
-                disabled={steamLoading}
-              >
-                {steamLoading ? <LoaderCircle size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
-                Conectar Steam
-              </button>
-            )}
-            {steamStatus.connected && (
-              <button
-                className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                type="button"
-                onClick={handleDisconnectSteam}
-                disabled={steamLoading}
-              >
-                <LogOut size={14} />
-                Desconectar Steam
-              </button>
-            )}
+              Home
+            </button>
+            <button
+              className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
+                isProfileRoute
+                  ? 'border-transparent bg-[var(--ink-main)] text-white'
+                  : 'border-black/10 bg-white/65 text-black/75 hover:bg-white'
+              }`}
+              type="button"
+              onClick={() => navigateTo('/profile')}
+              disabled={isProfileRoute}
+            >
+              Perfil
+            </button>
             <button
               className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white"
               type="button"
@@ -714,19 +814,151 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-10 pt-8 sm:px-6 lg:px-8 lg:pt-10">
-        {steamError && (
-          <div className="mb-5 rounded-xl border border-amber-300/55 bg-amber-100/55 px-4 py-3 text-sm text-amber-800">
-            {steamError}
-          </div>
-        )}
+      <main
+        className={`mx-auto w-full max-w-7xl flex-1 px-4 pt-8 sm:px-6 lg:px-8 ${
+          isProfileRoute ? 'pb-2 lg:pt-8' : 'pb-10 lg:pt-10'
+        }`}
+      >
+        {isProfileRoute ? (
+          <div className="mx-auto w-full max-w-3xl">
+            <motion.section
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35 }}
+              className="glass-panel p-6 sm:p-8"
+            >
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-black/5 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.24em] text-black/60">
+                <User size={13} />
+                Perfil
+              </div>
 
-        <motion.section
-          initial={{ opacity: 0, y: 26 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55 }}
-          className="mb-8 grid gap-5 lg:grid-cols-3"
-        >
+              <h1 className="font-display text-4xl leading-tight sm:text-5xl">Minha conta</h1>
+              <p className="mt-3 text-sm text-black/70 sm:text-base">
+                Veja os dados da sua conta e gerencie suas configuracoes de acesso.
+              </p>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-black/10 bg-white/55 p-4">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">Nome</p>
+                  <p className="mt-1 text-base font-semibold text-black/85">{user?.name}</p>
+                </div>
+                <div className="rounded-xl border border-black/10 bg-white/55 p-4">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">Email</p>
+                  <p className="mt-1 text-base font-semibold text-black/85">{user?.email}</p>
+                </div>
+                <div className="rounded-xl border border-black/10 bg-white/55 p-4 sm:col-span-2">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">Conta criada em</p>
+                  <p className="mt-1 text-base font-semibold text-black/85">
+                    {user?.createdAt ? formatDateTime(user.createdAt) : 'Nao informado'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-black/10 bg-white/55 p-4 sm:p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="font-display text-2xl leading-tight">Contas conectadas</p>
+                  <span
+                    className={`rounded-full px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] ${
+                      steamStatus.connected ? 'bg-emerald-500/12 text-emerald-700' : 'bg-amber-500/12 text-amber-700'
+                    }`}
+                  >
+                    {steamStatus.connected ? 'Steam conectada' : 'Steam pendente'}
+                  </span>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-black/10 bg-white/70 p-4 sm:col-span-2">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">Conta Steam</p>
+                    <p className="mt-1 text-sm text-black/75">
+                      {steamStatus.steamId ? `SteamID: ${steamStatus.steamId}` : 'Nenhuma conta Steam conectada.'}
+                    </p>
+                    <p className="mt-1 text-xs text-black/55">
+                      {steamStatus.linkedAt ? `Conectada em ${formatDateTime(steamStatus.linkedAt)}` : 'Sem vinculacao ativa'}
+                    </p>
+                  </div>
+                </div>
+
+                {steamError && (
+                  <p className="mt-3 rounded-lg border border-amber-300/70 bg-amber-100/70 px-3 py-2 text-sm text-amber-800">
+                    {steamError}
+                  </p>
+                )}
+
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  {steamStatus.connected ? (
+                    <>
+                      <button
+                        className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                        type="button"
+                        onClick={handleSyncSteam}
+                        disabled={steamLoading || loadingData}
+                      >
+                        <RefreshCw size={14} className={steamLoading ? 'animate-spin' : ''} />
+                        Sync Steam
+                      </button>
+                      <button
+                        className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                        type="button"
+                        onClick={handleDisconnectSteam}
+                        disabled={steamLoading}
+                      >
+                        <LogOut size={14} />
+                        Desconectar Steam
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                      type="button"
+                      onClick={handleConnectSteam}
+                      disabled={steamLoading}
+                    >
+                      {steamLoading ? <LoaderCircle size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+                      Conectar Steam
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-8 rounded-2xl border border-red-300/50 bg-red-100/45 p-4 sm:p-5">
+                <p className="font-display text-2xl leading-tight text-red-700">Zona de perigo</p>
+                <p className="mt-2 text-sm text-red-700/90">
+                  Apagar sua conta remove o acesso e os dados de autenticacao de forma permanente.
+                </p>
+                {profileError && (
+                  <p className="mt-3 rounded-lg border border-red-300/70 bg-white/70 px-3 py-2 text-sm text-red-700">
+                    {profileError}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  disabled={deleteSubmitting}
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {deleteSubmitting ? (
+                    <>
+                      <LoaderCircle size={16} className="animate-spin" />
+                      Apagando conta...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={16} />
+                      Apagar minha conta
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.section>
+          </div>
+        ) : (
+          <>
+            <motion.section
+              initial={{ opacity: 0, y: 26 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55 }}
+              className="mb-8 grid gap-5 lg:grid-cols-3"
+            >
 
           <div className="glass-panel w-full p-6 sm:p-8 lg:col-span-3">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-black/5 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.24em] text-black/60">
@@ -739,8 +971,7 @@ export default function App() {
               <span className="text-[var(--brand-gold)]"> conquista total</span>
             </h1>
             <p className="mt-4 max-w-4xl text-sm text-black/70 sm:text-base">
-              Veja progresso, platinas concluidas e pontos de atencao em um dashboard criado para leitura rapida,
-              comparacao entre plataformas e foco no proximo 100%.
+              Veja progresso e platinas concluidas!
             </p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -854,20 +1085,22 @@ export default function App() {
           </div>
         )}
 
-        {!loadingData && !dataError && filteredPlatinums.length > 0 && (
-          <div
-            className={
-              viewMode === 'grid'
-                ? 'grid grid-cols-1 justify-items-center gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
-                : 'space-y-3'
-            }
-          >
-            <AnimatePresence mode="popLayout">
-              {filteredPlatinums.map((game, index) => (
-                <GameCard key={game.id} game={game} viewMode={viewMode} order={index} />
-              ))}
-            </AnimatePresence>
-          </div>
+            {!loadingData && !dataError && filteredPlatinums.length > 0 && (
+              <div
+                className={
+                  viewMode === 'grid'
+                    ? 'grid grid-cols-1 justify-items-center gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
+                    : 'space-y-3'
+                }
+              >
+                <AnimatePresence mode="popLayout">
+                  {filteredPlatinums.map((game, index) => (
+                    <GameCard key={game.id} game={game} viewMode={viewMode} order={index} />
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+          </>
         )}
       </main>
 
@@ -877,21 +1110,8 @@ export default function App() {
           <span>Ultimo sync: {stats?.lastSync ? formatDateTime(stats.lastSync) : 'nunca'}</span>
         </div>
       </footer>
-    </BackgroundLayout>
-  );
-}
 
-function BackgroundLayout({ children }: { children: ReactNode }) {
-  return (
-    <div className="relative flex min-h-dvh flex-col overflow-x-hidden bg-[var(--bg-main)] text-[var(--ink-main)] selection:bg-[var(--ink-main)] selection:text-[var(--bg-main)]">
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-[-15%] top-[-8%] h-[420px] w-[420px] rounded-full bg-[var(--brand-cyan)]/20 blur-3xl" />
-        <div className="absolute right-[-12%] top-[12%] h-[340px] w-[340px] rounded-full bg-[var(--brand-gold)]/20 blur-3xl" />
-        <div className="absolute bottom-[-20%] left-[30%] h-[420px] w-[420px] rounded-full bg-[var(--brand-rose)]/20 blur-3xl" />
-        <div className="atmosphere-grid h-full w-full" />
-      </div>
-      {children}
-    </div>
+    </>
   );
 }
 
@@ -1107,6 +1327,30 @@ function handleGameImageError(event: SyntheticEvent<HTMLImageElement>) {
   }
 
   image.onerror = null;
+}
+
+function normalizePath(pathname: string): '/home' | '/login' | '/register' | '/profile' {
+  if (pathname === '/login') {
+    return '/login';
+  }
+
+  if (pathname === '/register') {
+    return '/register';
+  }
+
+  if (pathname === '/profile') {
+    return '/profile';
+  }
+
+  return '/home';
+}
+
+function getNormalizedPath(): '/home' | '/login' | '/register' | '/profile' {
+  if (typeof window === 'undefined') {
+    return '/home';
+  }
+
+  return normalizePath(window.location.pathname);
 }
 
 function getStoredToken(): string | null {

@@ -187,7 +187,7 @@ function getQueryParam(value: unknown): string {
 
 function buildAppRedirect(status: string): string {
   const encodedStatus = encodeURIComponent(status);
-  return `${APP_BASE_URL}/?steam=${encodedStatus}`;
+  return `${APP_BASE_URL}/home?steam=${encodedStatus}`;
 }
 
 function extractSteamIDFromClaimedID(claimedID: string): string {
@@ -372,6 +372,27 @@ async function startServer() {
     } catch (error) {
       console.error("Logout failed:", error);
       res.status(500).json({ error: "Erro ao encerrar sessao." });
+    }
+  });
+
+  app.delete("/api/auth/account", authMiddleware, async (req: AuthedRequest, res) => {
+    try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ error: "Nao autenticado" });
+        return;
+      }
+
+      await Promise.all([
+        usersCollection.deleteOne({ _id: userId }),
+        sessionsCollection.deleteMany({ userId }),
+        steamStatesCollection.deleteMany({ userId }),
+      ]);
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete account failed:", error);
+      res.status(500).json({ error: "Nao foi possivel apagar sua conta." });
     }
   });
 

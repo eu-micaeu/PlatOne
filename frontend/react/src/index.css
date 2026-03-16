@@ -19,25 +19,6 @@
   box-sizing: border-box;
 }
 
-html,
-body,
-#root {
-  min-height: 100%;
-}
-
-body {
-  margin: 0;
-  background:
-    radial-gradient(circle at 8% 10%, rgba(63, 169, 201, 0.22), transparent 30%),
-    radial-gradient(circle at 88% 18%, rgba(241, 195, 74, 0.2), transparent 34%),
-    radial-gradient(circle at 52% 95%, rgba(214, 128, 106, 0.2), transparent 36%),
-    var(--bg-main);
-  color: var(--ink-main);
-  font-family: var(--font-sans);
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-}
-
 .atmosphere-grid {
   background-image:
     linear-gradient(rgba(31, 34, 38, 0.04) 1px, transparent 1px),
