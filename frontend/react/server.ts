@@ -45,7 +45,7 @@ type AuthedRequest = express.Request & {
 };
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://backend:8080";
-const MONGO_URI = process.env.MONGO_URI ?? "mongodb://mongodb:27017";
+const DATABASE_URL = process.env.DATABASE_URL ?? process.env.MONGO_URI ?? "mongodb://mongodb:27017";
 const MONGO_DB = process.env.MONGO_DB ?? "platone";
 const AUTH_USERS_COLLECTION = process.env.AUTH_USERS_COLLECTION ?? "auth_users";
 const AUTH_SESSIONS_COLLECTION = process.env.AUTH_SESSIONS_COLLECTION ?? "auth_sessions";
@@ -381,7 +381,7 @@ async function proxyBackendSync(steamID: string): Promise<Response> {
 }
 
 async function startServer() {
-  const mongoClient = new MongoClient(MONGO_URI);
+  const mongoClient = new MongoClient(DATABASE_URL);
   await mongoClient.connect();
 
   const db = mongoClient.db(MONGO_DB);

@@ -31,7 +31,10 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
-	mongoURI := os.Getenv("MONGO_URI")
+	mongoURI := os.Getenv("DATABASE_URL")
+	if mongoURI == "" {
+		mongoURI = os.Getenv("MONGO_URI")
+	}
 	if mongoURI == "" {
 		mongoURI = "mongodb://mongodb:27017"
 	}

@@ -1,0 +1,35 @@
+services:
+  backend:
+    build:
+      context: ./backend/go
+      dockerfile: Dockerfile
+    environment:
+      GO_ENV: production
+      PORT: ${BACKEND_PORT:-8080}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required in production}
+      STEAM_API_KEY: ${STEAM_API_KEY:-}
+    restart: unless-stopped
+    networks:
+      - platone_network
+
+  frontend:
+    build:
+      context: ./frontend/react
+      dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      BACKEND_URL: http://backend:${BACKEND_PORT:-8080}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required in production}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:${FRONTEND_PORT:-3000}}
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - platone_network
+
+networks:
+  platone_network:
+    driver: bridge
