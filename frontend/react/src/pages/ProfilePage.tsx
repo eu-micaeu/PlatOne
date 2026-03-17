@@ -1,4 +1,4 @@
-import { type ReactNode, type SyntheticEvent } from 'react';
+import { type JSX, type ReactNode, type SyntheticEvent } from 'react';
 import { motion } from 'motion/react';
 import { Eye, Gamepad2, LoaderCircle, RefreshCw, ShieldCheck, Sparkles, TrendingUp, Trophy } from 'lucide-react';
 
