@@ -860,7 +860,12 @@ async function startServer() {
       const userGames = payload.filter((entry) => {
         if (!entry || typeof entry !== "object") return false;
         const platformUserID = (entry as { metadata?: { platform_user_id?: unknown } }).metadata?.platform_user_id;
-        return typeof platformUserID === "string" && platformUserID.trim() === steamID;
+        const normalizedPlatformID = typeof platformUserID === "string" ? platformUserID.trim() : "";
+        const matches = normalizedPlatformID === steamID;
+        if (!matches && normalizedPlatformID && steamID) {
+          console.log(`[platinums] SteamID mismatch: expected='${steamID}' got='${normalizedPlatformID}'`);
+        }
+        return matches;
       });
 
       res.json(userGames);
@@ -914,7 +919,12 @@ async function startServer() {
       const userGames = payload.filter((entry) => {
         if (!entry || typeof entry !== "object") return false;
         const platformUserID = (entry as { metadata?: { platform_user_id?: unknown } }).metadata?.platform_user_id;
-        return typeof platformUserID === "string" && platformUserID.trim() === steamID;
+        const normalizedPlatformID = typeof platformUserID === "string" ? platformUserID.trim() : "";
+        const matches = normalizedPlatformID === steamID;
+        if (!matches && normalizedPlatformID && steamID) {
+          console.log(`[stats] SteamID mismatch: expected='${steamID}' got='${normalizedPlatformID}'`);
+        }
+        return matches;
       });
 
       const totalGames = userGames.length;

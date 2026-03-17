@@ -104,6 +104,8 @@ func (s *platService) SyncUserGames(ctx context.Context, userID string) error {
 		return errors.New("STEAM_API_KEY não configurada")
 	}
 
+	fmt.Printf("[SyncUserGames] Starting sync for steamID='%s' (len=%d)\n", steamID, len(steamID))
+
 	games, err := s.fetchOwnedSteamGames(ctx, steamID)
 	if err != nil {
 		return fmt.Errorf("erro ao buscar biblioteca Steam: %w", err)
@@ -381,6 +383,8 @@ func (s *platService) syncSteamGame(ctx context.Context, steamID string, game st
 			"icon_fallback":      fallbackIconURL,
 		},
 	}
+
+	fmt.Printf("[UpsertPlatinum] Saving game for steamID='%s' appID=%s title='%s'\n", steamID, appID, title)
 
 	return s.UpsertPlatinum(ctx, plat)
 }
