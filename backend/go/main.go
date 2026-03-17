@@ -320,12 +320,7 @@ func main() {
 		})
 	})
 
-	port := strings.TrimSpace(os.Getenv("PORT"))
-	if port == "" {
-		port = "8080"
-	}
-
-	listenAddr := ":" + port
+	listenAddr := ":8085"
 	log.Printf("Serviço PlatOne iniciado com sucesso na porta %s", listenAddr)
 	log.Fatal(http.ListenAndServe(listenAddr, corsMiddleware(mux)))
 }

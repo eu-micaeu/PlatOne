@@ -44,21 +44,20 @@ type AuthedRequest = express.Request & {
   token?: string;
 };
 
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://backend:8080";
+const BACKEND_URL = process.env.BACKEND_URL ?? "http://backend:8085";
 const DATABASE_URL = process.env.DATABASE_URL ?? process.env.MONGO_URI ?? "mongodb://mongodb:27017";
 const MONGO_DB = process.env.MONGO_DB ?? "platone";
 const AUTH_USERS_COLLECTION = process.env.AUTH_USERS_COLLECTION ?? "auth_users";
 const AUTH_SESSIONS_COLLECTION = process.env.AUTH_SESSIONS_COLLECTION ?? "auth_sessions";
 const AUTH_STEAM_STATES_COLLECTION = process.env.AUTH_STEAM_STATES_COLLECTION ?? "auth_steam_states";
-const PORT = Number.parseInt(process.env.PORT ?? "3000", 10) || 3000;
 
 // In production, APP_BASE_URL must be explicitly set via env
-// In development, it defaults to localhost with the configured PORT
+// In development, it defaults to localhost on the fixed frontend port.
 const APP_BASE_URL_ENV = process.env.APP_BASE_URL?.replace(/\/+$/, "");
 const APP_BASE_URL = APP_BASE_URL_ENV ?? (
   process.env.NODE_ENV === "production"
     ? (() => { throw new Error("APP_BASE_URL is required in production"); })()
-    : `http://localhost:${PORT}`
+    : "http://localhost:3005"
 );
 
 function hashPassword(rawPassword: string): string {
@@ -1180,8 +1179,8 @@ async function startServer() {
     });
   }
 
-  httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  httpServer.listen(3005, "0.0.0.0", () => {
+    console.log("Server running on http://localhost:3005");
   });
 
   const shutdown = async () => {

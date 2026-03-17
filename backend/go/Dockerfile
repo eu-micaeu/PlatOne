@@ -17,6 +17,6 @@ WORKDIR /app
 
 COPY --from=build /out/platone-backend ./platone-backend
 
-EXPOSE 8080
+EXPOSE 8085
 
 CMD ["./platone-backend"]

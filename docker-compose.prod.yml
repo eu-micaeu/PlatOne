@@ -19,10 +19,9 @@ services:
       context: ./frontend/react
       dockerfile: Dockerfile
     ports:
-      - "${FRONTEND_PORT:-3005}:${FRONTEND_PORT:-3005}"
+      - "3005:3005"
     environment:
       NODE_ENV: production
-      PORT: ${FRONTEND_PORT:-3005}
       BACKEND_URL: http://backend:8085
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required in production}
       APP_BASE_URL: ${APP_BASE_URL:?APP_BASE_URL is required in production}

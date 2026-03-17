@@ -96,7 +96,7 @@ Em vez de um tracker estatico, o objetivo e oferecer uma camada de identidade ga
 ### Desenvolvimento
 
 - Suba o ambiente com hot reload usando `docker compose -f docker-compose.dev.yml up --build`.
-- O frontend fica disponivel em `http://localhost:${FRONTEND_PORT}` e o backend em `http://localhost:${BACKEND_PORT}`.
+- O frontend fica disponivel em `http://localhost:3005` e o backend em `http://localhost:8085`.
 - O MongoDB fica exposto localmente na porta `27017` por padrao.
 
 ### Producao
@@ -104,4 +104,4 @@ Em vez de um tracker estatico, o objetivo e oferecer uma camada de identidade ga
 - Gere e suba as imagens com `docker compose -f docker-compose.prod.yml up -d --build`.
 - Nesse modo o frontend roda em `NODE_ENV=production`, serve o bundle de `dist` e conversa internamente com o backend.
 - O backend nao e publicado externamente no compose de producao; o acesso esperado e via frontend/BFF.
-- Antes de subir em producao, ajuste pelo menos `APP_BASE_URL`, `STEAM_API_KEY`, `DATABASE_URL` e as portas no arquivo `.env`.
+- Antes de subir em producao, ajuste pelo menos `APP_BASE_URL`, `STEAM_API_KEY` e `DATABASE_URL` no arquivo `.env`.

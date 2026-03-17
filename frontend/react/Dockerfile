@@ -22,6 +22,6 @@ COPY --from=build /app/server.ts ./server.ts
 COPY --from=build /app/tsconfig.json ./tsconfig.json
 COPY --from=build /app/dist ./dist
 
-EXPOSE 3000
+EXPOSE 3005
 
 CMD ["node", "--import", "tsx", "server.ts"]
