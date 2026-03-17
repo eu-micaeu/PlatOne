@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"platone/backend/models"
@@ -48,6 +49,7 @@ func main() {
 
 	db := client.Database("platone")
 	svc := service.NewPlatService(db)
+	friendSvc := service.NewFriendService(db)
 
 	mux := http.NewServeMux()
 
@@ -127,6 +129,152 @@ func main() {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	log.Println("Serviço PlatOne iniciado com sucesso na porta :8080")
-	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(mux)))
+	// Friend endpoints
+	mux.HandleFunc("POST /api/friends/request", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			FromID string `json:"from_id"`
+			ToID   string `json:"to_id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Payload inválido", http.StatusBadRequest)
+			return
+		}
+		if err := friendSvc.SendFriendRequest(r.Context(), req.FromID, req.ToID); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+	})
+
+	mux.HandleFunc("POST /api/friends/request/{requestID}/accept", func(w http.ResponseWriter, r *http.Request) {
+		requestID := r.PathValue("requestID")
+		if err := friendSvc.AcceptFriendRequest(r.Context(), requestID); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	mux.HandleFunc("POST /api/friends/request/{requestID}/reject", func(w http.ResponseWriter, r *http.Request) {
+		requestID := r.PathValue("requestID")
+		if err := friendSvc.RejectFriendRequest(r.Context(), requestID); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	mux.HandleFunc("GET /api/friends/requests/{userID}", func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("userID")
+		requests, err := friendSvc.GetFriendRequests(r.Context(), userID)
+		if err != nil {
+			http.Error(w, "Erro ao buscar pedidos de amizade", http.StatusInternalServerError)
+			return
+		}
+		if requests == nil {
+			requests = []models.FriendRequest{}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(requests)
+	})
+
+	mux.HandleFunc("GET /api/friends/{userID}", func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("userID")
+		friends, err := friendSvc.GetFriends(r.Context(), userID)
+		if err != nil {
+			http.Error(w, "Erro ao buscar amigos", http.StatusInternalServerError)
+			return
+		}
+		if friends == nil {
+			friends = []models.User{}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(friends)
+	})
+
+	mux.HandleFunc("DELETE /api/friends/{userID}/{friendID}", func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("userID")
+		friendID := r.PathValue("friendID")
+		if err := friendSvc.RemoveFriend(r.Context(), userID, friendID); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	// Message endpoints
+	mux.HandleFunc("POST /api/messages", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			FromID  string `json:"from_id"`
+			ToID    string `json:"to_id"`
+			Content string `json:"content"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Payload inválido", http.StatusBadRequest)
+			return
+		}
+		if err := friendSvc.SendMessage(r.Context(), req.FromID, req.ToID, req.Content); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+	})
+
+	mux.HandleFunc("GET /api/messages/{userID1}/{userID2}", func(w http.ResponseWriter, r *http.Request) {
+		userID1 := r.PathValue("userID1")
+		userID2 := r.PathValue("userID2")
+		messages, err := friendSvc.GetMessages(r.Context(), userID1, userID2)
+		if err != nil {
+			http.Error(w, "Erro ao buscar mensagens", http.StatusInternalServerError)
+			return
+		}
+		if messages == nil {
+			messages = []models.Message{}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(messages)
+	})
+
+	mux.HandleFunc("GET /api/conversations/{userID}", func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("userID")
+		conversations, err := friendSvc.GetConversations(r.Context(), userID)
+		if err != nil {
+			http.Error(w, "Erro ao buscar conversas", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(conversations)
+	})
+
+	mux.HandleFunc("PUT /api/messages/{fromID}/{toID}/read", func(w http.ResponseWriter, r *http.Request) {
+		fromID := r.PathValue("fromID")
+		toID := r.PathValue("toID")
+		if err := friendSvc.MarkMessagesAsRead(r.Context(), fromID, toID); err != nil {
+			http.Error(w, "Erro ao marcar mensagens como lidas", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	mux.HandleFunc("GET /api/messages/{userID}/unread", func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("userID")
+		count, err := friendSvc.GetUnreadCount(r.Context(), userID)
+		if err != nil {
+			http.Error(w, "Erro ao contar mensagens não lidas", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"unread_count": count,
+		})
+	})
+
+	port := strings.TrimSpace(os.Getenv("PORT"))
+	if port == "" {
+		port = "8080"
+	}
+
+	listenAddr := ":" + port
+	log.Printf("Serviço PlatOne iniciado com sucesso na porta %s", listenAddr)
+	log.Fatal(http.ListenAndServe(listenAddr, corsMiddleware(mux)))
 }

@@ -51,6 +51,7 @@ const AUTH_USERS_COLLECTION = process.env.AUTH_USERS_COLLECTION ?? "auth_users";
 const AUTH_SESSIONS_COLLECTION = process.env.AUTH_SESSIONS_COLLECTION ?? "auth_sessions";
 const AUTH_STEAM_STATES_COLLECTION = process.env.AUTH_STEAM_STATES_COLLECTION ?? "auth_steam_states";
 const APP_BASE_URL = (process.env.APP_BASE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+const PORT = Number.parseInt(process.env.PORT ?? "3000", 10) || 3000;
 
 function hashPassword(rawPassword: string): string {
   return crypto.createHash("sha256").update(rawPassword).digest("hex");
@@ -154,6 +155,71 @@ async function proxyBackendGet(pathname: string, res: express.Response) {
     res.send(body);
   } catch (error) {
     console.error(`Error proxying ${pathname} to backend:`, error);
+    res.status(502).json({ error: "Falha ao consultar dados no backend." });
+  }
+}
+
+async function proxyBackendWithJSON(
+  pathname: string,
+  method: "POST" | "PUT" | "DELETE",
+  payload: unknown,
+  res: express.Response
+) {
+  try {
+    const response = await fetch(`${BACKEND_URL}${pathname}`, {
+      method,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const contentType = response.headers.get("content-type") ?? "application/json";
+    const body = await response.text();
+
+    res.status(response.status);
+    res.setHeader("Content-Type", contentType);
+
+    if (!body) {
+      res.send();
+      return;
+    }
+
+    res.send(body);
+  } catch (error) {
+    console.error(`Error proxying ${method} ${pathname} to backend:`, error);
+    res.status(502).json({ error: "Falha ao consultar dados no backend." });
+  }
+}
+
+async function proxyBackendWithoutBody(
+  pathname: string,
+  method: "POST" | "PUT" | "DELETE",
+  res: express.Response
+) {
+  try {
+    const response = await fetch(`${BACKEND_URL}${pathname}`, {
+      method,
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    const contentType = response.headers.get("content-type") ?? "application/json";
+    const body = await response.text();
+
+    res.status(response.status);
+    res.setHeader("Content-Type", contentType);
+
+    if (!body) {
+      res.send();
+      return;
+    }
+
+    res.send(body);
+  } catch (error) {
+    console.error(`Error proxying ${method} ${pathname} to backend:`, error);
     res.status(502).json({ error: "Falha ao consultar dados no backend." });
   }
 }
@@ -344,7 +410,6 @@ async function startServer() {
   );
 
   const app = express();
-  const PORT = 3000;
   const httpServer = createHttpServer(app);
   const authMiddleware = buildAuthMiddleware(usersCollection, sessionsCollection);
 
@@ -758,8 +823,43 @@ async function startServer() {
   });
 
   // Dashboard data now comes from the Go backend (MongoDB), no local mocks.
-  app.get("/api/platinums", authMiddleware, async (_req, res) => {
-    await proxyBackendGet("/api/platinums", res);
+  app.get("/api/platinums", authMiddleware, async (req: AuthedRequest, res) => {
+    const steamID = req.user?.steam?.steamId?.trim() ?? "";
+
+    if (!steamID) {
+      res.json([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/platinums`, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        res.status(response.status).setHeader("Content-Type", response.headers.get("content-type") ?? "application/json").send(body);
+        return;
+      }
+
+      const payload = (await response.json()) as unknown;
+      if (!Array.isArray(payload)) {
+        res.json([]);
+        return;
+      }
+
+      const userGames = payload.filter((entry) => {
+        if (!entry || typeof entry !== "object") return false;
+        const platformUserID = (entry as { metadata?: { platform_user_id?: unknown } }).metadata?.platform_user_id;
+        return typeof platformUserID === "string" && platformUserID.trim() === steamID;
+      });
+
+      res.json(userGames);
+    } catch (error) {
+      console.error("Error fetching platinums:", error);
+      res.status(502).json({ error: "Falha ao consultar dados no backend." });
+    }
   });
 
   app.get("/api/games/:gameId/achievements", authMiddleware, async (req: AuthedRequest, res) => {
@@ -778,8 +878,269 @@ async function startServer() {
     await proxyBackendGameAchievements(steamID, gameID, res);
   });
 
-  app.get("/api/stats", authMiddleware, async (_req, res) => {
-    await proxyBackendGet("/api/stats", res);
+  app.get("/api/stats", authMiddleware, async (req: AuthedRequest, res) => {
+    const steamID = req.user?.steam?.steamId?.trim() ?? "";
+
+    if (!steamID) {
+      res.json({ totalPlatinums: 0, totalGames: 0, lastSync: new Date().toISOString() });
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/platinums`, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
+
+      if (!response.ok) {
+        res.json({ totalPlatinums: 0, totalGames: 0, lastSync: new Date().toISOString() });
+        return;
+      }
+
+      const payload = (await response.json()) as unknown;
+      if (!Array.isArray(payload)) {
+        res.json({ totalPlatinums: 0, totalGames: 0, lastSync: new Date().toISOString() });
+        return;
+      }
+
+      const userGames = payload.filter((entry) => {
+        if (!entry || typeof entry !== "object") return false;
+        const platformUserID = (entry as { metadata?: { platform_user_id?: unknown } }).metadata?.platform_user_id;
+        return typeof platformUserID === "string" && platformUserID.trim() === steamID;
+      });
+
+      const totalGames = userGames.length;
+      const totalPlatinums = userGames.filter((entry) => {
+        const v = (entry as { is_platinum?: unknown }).is_platinum;
+        return v === true || v === 1 || v === "true";
+      }).length;
+
+      let lastSync = new Date().toISOString();
+      for (const entry of userGames) {
+        const raw = (entry as { validation_date?: unknown; metadata?: { validation_date?: unknown } }).validation_date
+          ?? (entry as { metadata?: { validation_date?: unknown } }).metadata?.validation_date;
+        if (typeof raw === "string") {
+          const parsed = new Date(raw);
+          if (!Number.isNaN(parsed.getTime())) {
+            lastSync = parsed.toISOString();
+          }
+        }
+      }
+
+      res.json({ totalPlatinums, totalGames, lastSync });
+    } catch (error) {
+      console.error("Error computing stats:", error);
+      res.status(502).json({ error: "Falha ao consultar dados no backend." });
+    }
+  });
+
+  app.get("/api/users/search", authMiddleware, async (req: AuthedRequest, res) => {
+    const rawQuery = String(req.query?.query ?? req.query?.q ?? "").trim();
+    if (!rawQuery) {
+      res.json([]);
+      return;
+    }
+
+    const escapedQuery = escapeRegex(rawQuery);
+    const filter = {
+      $or: [
+        { name: { $regex: escapedQuery, $options: "i" } },
+        { email: { $regex: escapedQuery, $options: "i" } },
+      ],
+    } as const;
+
+    try {
+      const results = await usersCollection
+        .find(filter, { projection: { name: 1, email: 1, createdAt: 1 } })
+        .limit(10)
+        .toArray();
+
+      const currentUserID = req.user?._id.toHexString() ?? "";
+      const payload = results
+        .filter((entry) => entry._id.toHexString() !== currentUserID)
+        .map((entry) => ({
+          id: entry._id.toHexString(),
+          username: entry.name,
+          email: entry.email,
+          created_at: entry.createdAt.toISOString(),
+        }));
+
+      res.json(payload);
+    } catch (error) {
+      console.error("User search failed:", error);
+      res.status(500).json({ error: "Nao foi possivel buscar usuarios." });
+    }
+  });
+
+  app.get("/api/friends", authMiddleware, async (req: AuthedRequest, res) => {
+    const userID = req.user?._id.toHexString();
+    if (!userID) {
+      res.status(401).json({ error: "Nao autenticado" });
+      return;
+    }
+
+    await proxyBackendGet(`/api/friends/${encodeURIComponent(userID)}`, res);
+  });
+
+  app.get("/api/friends/requests", authMiddleware, async (req: AuthedRequest, res) => {
+    const userID = req.user?._id.toHexString();
+    if (!userID) {
+      res.status(401).json({ error: "Nao autenticado" });
+      return;
+    }
+
+    await proxyBackendGet(`/api/friends/requests/${encodeURIComponent(userID)}`, res);
+  });
+
+  app.post("/api/friends/request", authMiddleware, async (req: AuthedRequest, res) => {
+    const userID = req.user?._id.toHexString();
+    const toID = String(req.body?.to_id ?? "").trim();
+
+    if (!userID) {
+      res.status(401).json({ error: "Nao autenticado" });
+      return;
+    }
+
+    if (!toID) {
+      res.status(400).json({ error: "Informe o usuario de destino." });
+      return;
+    }
+
+    await proxyBackendWithJSON(
+      "/api/friends/request",
+      "POST",
+      {
+        from_id: userID,
+        to_id: toID,
+      },
+      res
+    );
+  });
+
+  app.post("/api/friends/request/:requestId/accept", authMiddleware, async (req, res) => {
+    const requestID = String(req.params?.requestId ?? "").trim();
+    if (!requestID) {
+      res.status(400).json({ error: "Informe o pedido de amizade." });
+      return;
+    }
+
+    await proxyBackendWithoutBody(`/api/friends/request/${encodeURIComponent(requestID)}/accept`, "POST", res);
+  });
+
+  app.post("/api/friends/request/:requestId/reject", authMiddleware, async (req, res) => {
+    const requestID = String(req.params?.requestId ?? "").trim();
+    if (!requestID) {
+      res.status(400).json({ error: "Informe o pedido de amizade." });
+      return;
+    }
+
+    await proxyBackendWithoutBody(`/api/friends/request/${encodeURIComponent(requestID)}/reject`, "POST", res);
+  });
+
+  app.delete("/api/friends/:friendId", authMiddleware, async (req: AuthedRequest, res) => {
+    const userID = req.user?._id.toHexString();
+    const friendID = String(req.params?.friendId ?? "").trim();
+
+    if (!userID) {
+      res.status(401).json({ error: "Nao autenticado" });
+      return;
+    }
+
+    if (!friendID) {
+      res.status(400).json({ error: "Informe o amigo." });
+      return;
+    }
+
+    await proxyBackendWithoutBody(
+      `/api/friends/${encodeURIComponent(userID)}/${encodeURIComponent(friendID)}`,
+      "DELETE",
+      res
+    );
+  });
+
+  app.get("/api/messages/unread", authMiddleware, async (req: AuthedRequest, res) => {
+    const userID = req.user?._id.toHexString();
+    if (!userID) {
+      res.status(401).json({ error: "Nao autenticado" });
+      return;
+    }
+
+    await proxyBackendGet(`/api/messages/${encodeURIComponent(userID)}/unread`, res);
+  });
+
+  app.get("/api/messages/conversations", authMiddleware, async (req: AuthedRequest, res) => {
+    const userID = req.user?._id.toHexString();
+    if (!userID) {
+      res.status(401).json({ error: "Nao autenticado" });
+      return;
+    }
+
+    await proxyBackendGet(`/api/conversations/${encodeURIComponent(userID)}`, res);
+  });
+
+  app.get("/api/messages/:friendId", authMiddleware, async (req: AuthedRequest, res) => {
+    const userID = req.user?._id.toHexString();
+    const friendID = String(req.params?.friendId ?? "").trim();
+
+    if (!userID) {
+      res.status(401).json({ error: "Nao autenticado" });
+      return;
+    }
+
+    if (!friendID) {
+      res.status(400).json({ error: "Informe a conversa." });
+      return;
+    }
+
+    await proxyBackendGet(`/api/messages/${encodeURIComponent(userID)}/${encodeURIComponent(friendID)}`, res);
+  });
+
+  app.put("/api/messages/:friendId/read", authMiddleware, async (req: AuthedRequest, res) => {
+    const userID = req.user?._id.toHexString();
+    const friendID = String(req.params?.friendId ?? "").trim();
+
+    if (!userID) {
+      res.status(401).json({ error: "Nao autenticado" });
+      return;
+    }
+
+    if (!friendID) {
+      res.status(400).json({ error: "Informe a conversa." });
+      return;
+    }
+
+    await proxyBackendWithoutBody(
+      `/api/messages/${encodeURIComponent(friendID)}/${encodeURIComponent(userID)}/read`,
+      "PUT",
+      res
+    );
+  });
+
+  app.post("/api/messages", authMiddleware, async (req: AuthedRequest, res) => {
+    const userID = req.user?._id.toHexString();
+    const toID = String(req.body?.to_id ?? "").trim();
+    const content = String(req.body?.content ?? "").trim();
+
+    if (!userID) {
+      res.status(401).json({ error: "Nao autenticado" });
+      return;
+    }
+
+    if (!toID || !content) {
+      res.status(400).json({ error: "Informe destinatario e conteudo da mensagem." });
+      return;
+    }
+
+    await proxyBackendWithJSON(
+      "/api/messages",
+      "POST",
+      {
+        from_id: userID,
+        to_id: toID,
+        content,
+      },
+      res
+    );
   });
 
   // Vite middleware for development

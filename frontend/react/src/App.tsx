@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type SyntheticEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { CheckCircle2, Clock3, LoaderCircle, LogOut, Trophy, X } from 'lucide-react';
+import { CheckCircle2, Clock3, LoaderCircle, LogOut, Trophy, X, Users, MessageSquare } from 'lucide-react';
 
 import BrandLogo from './components/BrandLogo';
+import AppFooter from './components/AppFooter';
+import MessageNotification from './components/MessageNotification';
 import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
+import FriendsPage from './pages/FriendsPage';
+import MessagesPage from './pages/MessagesPage';
 import type {
   Achievement,
   AuthMode,
@@ -20,6 +24,8 @@ import type {
 } from './types/app';
 
 const TOKEN_STORAGE_KEY = 'platone.auth.token';
+const MESSAGE_FRIEND_ID_STORAGE_KEY = 'platone.messages.friendId';
+const MESSAGE_FRIEND_NAME_STORAGE_KEY = 'platone.messages.friendName';
 
 const DEFAULT_STEAM_STATUS: SteamStatus = {
   connected: false,
@@ -27,7 +33,7 @@ const DEFAULT_STEAM_STATUS: SteamStatus = {
   linkedAt: null,
 };
 
-type AppRoute = '/home' | '/login' | '/register' | '/profile' | '/settings' | `/profile/${string}`;
+type AppRoute = '/home' | '/login' | '/register' | '/profile' | '/settings' | '/friends' | '/messages' | `/profile/${string}`;
 
 export default function App() {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
@@ -81,6 +87,8 @@ export default function App() {
   const isOwnProfileRoute = routePath === '/profile';
   const isProfileRoute = isOwnProfileRoute || isPublicProfileRoute;
   const isSettingsRoute = routePath === '/settings';
+  const isFriendsRoute = routePath === '/friends';
+  const isMessagesRoute = routePath === '/messages';
   const isLoginRoute = routePath === '/login';
   const isRegisterRoute = routePath === '/register';
   const isPublicRoute = isLoginRoute || isRegisterRoute || isPublicProfileRoute;
@@ -819,14 +827,7 @@ export default function App() {
           )}
         </main>
 
-        <footer className="border-t border-black/10 bg-white/30">
-          <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-4 text-[10px] uppercase tracking-[0.2em] text-black/50 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-            <span className="inline-flex items-center gap-2">
-              <BrandLogo className="h-4 w-4 opacity-70" />
-              <span>PlatOne Control Layer</span>
-            </span>
-          </div>
-        </footer>
+        <AppFooter />
 
         <AnimatePresence>
           {selectedGame && (
@@ -944,6 +945,7 @@ export default function App() {
             <span className="hidden rounded-full bg-black/6 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-black/65 sm:inline-flex">
               {user?.name}
             </span>
+            <MessageNotification currentUserId={user?.id} />
             <button
               className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
                 isHomeRoute
@@ -967,6 +969,32 @@ export default function App() {
               disabled={isOwnProfileRoute}
             >
               Perfil
+            </button>
+            <button
+              className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
+                isFriendsRoute
+                  ? 'border-transparent bg-[var(--ink-main)] text-white'
+                  : 'border-black/10 bg-white/65 text-black/75 hover:bg-white'
+              }`}
+              type="button"
+              onClick={() => navigateTo('/friends')}
+              disabled={isFriendsRoute}
+            >
+              <Users size={14} />
+              Amigos
+            </button>
+            <button
+              className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
+                isMessagesRoute
+                  ? 'border-transparent bg-[var(--ink-main)] text-white'
+                  : 'border-black/10 bg-white/65 text-black/75 hover:bg-white'
+              }`}
+              type="button"
+              onClick={() => navigateTo('/messages')}
+              disabled={isMessagesRoute}
+            >
+              <MessageSquare size={14} />
+              Mensagens
             </button>
             <button
               className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
@@ -994,7 +1022,7 @@ export default function App() {
 
       <main
         className={`mx-auto w-full max-w-7xl flex-1 px-4 pt-8 sm:px-6 lg:px-8 ${
-          isProfileRoute || isSettingsRoute ? 'pb-2 lg:pt-8' : 'pb-10 lg:pt-10'
+          isProfileRoute || isSettingsRoute || isFriendsRoute || isMessagesRoute ? 'pb-2 lg:pt-8' : 'pb-10 lg:pt-10'
         }`}
       >
         {isSettingsRoute ? (
@@ -1012,6 +1040,19 @@ export default function App() {
             onDeleteAccount={handleDeleteAccount}
             formatDateTime={formatDateTime}
           />
+        ) : isFriendsRoute ? (
+          <FriendsPage
+            currentUserId={user?.id}
+            onSendMessage={(friendId, friendName) => {
+              if (typeof window !== 'undefined') {
+                sessionStorage.setItem(MESSAGE_FRIEND_ID_STORAGE_KEY, friendId);
+                sessionStorage.setItem(MESSAGE_FRIEND_NAME_STORAGE_KEY, friendName);
+              }
+              navigateTo('/messages');
+            }}
+          />
+        ) : isMessagesRoute ? (
+          <MessagesPage currentUserId={user?.id} />
         ) : isProfileRoute ? (
           <ProfilePage
             user={profileUser}
@@ -1056,14 +1097,7 @@ export default function App() {
         )}
       </main>
 
-      <footer className="border-t border-black/10 bg-white/30">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-4 text-[10px] uppercase tracking-[0.2em] text-black/50 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <span className="inline-flex items-center gap-2">
-            <BrandLogo className="h-4 w-4 opacity-70" />
-            <span>PlatOne Control Layer</span>
-          </span>
-        </div>
-      </footer>
+      <AppFooter />
 
       <AnimatePresence>
         {selectedGame && (
@@ -1241,6 +1275,14 @@ function normalizePath(pathname: string): AppRoute {
 
   if (pathname === '/settings') {
     return '/settings';
+  }
+
+  if (pathname === '/friends') {
+    return '/friends';
+  }
+
+  if (pathname === '/messages') {
+    return '/messages';
   }
 
   return '/home';

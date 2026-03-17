@@ -86,7 +86,6 @@ export default function HomePage({
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <StatTile label="Platinas" value={stats?.totalPlatinums ?? 0} helper="Titulos finalizados" />
             <StatTile label="Jogos" value={stats?.totalGames ?? 0} helper="Biblioteca sincronizada" />
-            <StatTile label="No mes" value={monthlyPlatinums} helper="Platinas recentes" />
           </div>
         </div>
       </motion.section>
