@@ -50,8 +50,16 @@ const MONGO_DB = process.env.MONGO_DB ?? "platone";
 const AUTH_USERS_COLLECTION = process.env.AUTH_USERS_COLLECTION ?? "auth_users";
 const AUTH_SESSIONS_COLLECTION = process.env.AUTH_SESSIONS_COLLECTION ?? "auth_sessions";
 const AUTH_STEAM_STATES_COLLECTION = process.env.AUTH_STEAM_STATES_COLLECTION ?? "auth_steam_states";
-const APP_BASE_URL = (process.env.APP_BASE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
 const PORT = Number.parseInt(process.env.PORT ?? "3000", 10) || 3000;
+
+// In production, APP_BASE_URL must be explicitly set via env
+// In development, it defaults to localhost with the configured PORT
+const APP_BASE_URL_ENV = process.env.APP_BASE_URL?.replace(/\/+$/, "");
+const APP_BASE_URL = APP_BASE_URL_ENV ?? (
+  process.env.NODE_ENV === "production"
+    ? (() => { throw new Error("APP_BASE_URL is required in production"); })()
+    : `http://localhost:${PORT}`
+);
 
 function hashPassword(rawPassword: string): string {
   return crypto.createHash("sha256").update(rawPassword).digest("hex");
