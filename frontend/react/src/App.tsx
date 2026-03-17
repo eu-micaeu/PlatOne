@@ -1,78 +1,24 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode, type SyntheticEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type SyntheticEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import {
-  CheckCircle2,
-  Clock3,
-  ExternalLink,
-  Filter,
-  Gamepad2,
-  LayoutGrid,
-  List as ListIcon,
-  LoaderCircle,
-  Lock,
-  LogOut,
-  Mail,
-  RefreshCw,
-  Search,
-  ShieldCheck,
-  Sparkles,
-  Trash2,
-  TrendingUp,
-  Trophy,
-  User,
-  UserPlus,
-} from 'lucide-react';
+import { CheckCircle2, Clock3, LoaderCircle, LogOut, ShieldCheck, Trophy, X } from 'lucide-react';
 
-interface Platinum {
-  id: string;
-  title: string;
-  platform: string;
-  unlocked: number;
-  total: number;
-  isPlatinum: boolean;
-  date: string | null;
-  icon: string;
-  backupIcon: string | null;
-  fallbackIcon: string;
-}
-
-interface Stats {
-  totalPlatinums: number;
-  totalGames: number;
-  lastSync: string;
-}
-
-interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  createdAt: string;
-}
-
-interface AuthResponse {
-  token: string;
-  user: AuthUser;
-}
-
-interface SteamStatus {
-  connected: boolean;
-  steamId: string | null;
-  linkedAt: string | null;
-}
-
-type StatusFilter = 'all' | 'platinum' | 'progress';
-
-type ViewMode = 'grid' | 'list';
-
-type AuthMode = 'login' | 'register';
+import AuthPage from './pages/AuthPage';
+import HomePage from './pages/HomePage';
+import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
+import type {
+  Achievement,
+  AuthMode,
+  AuthResponse,
+  AuthUser,
+  Platinum,
+  Stats,
+  StatusFilter,
+  SteamStatus,
+  ViewMode,
+} from './types/app';
 
 const TOKEN_STORAGE_KEY = 'platone.auth.token';
-
-const STATUS_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
-  { value: 'all', label: 'Tudo' },
-  { value: 'platinum', label: 'Platinado' },
-  { value: 'progress', label: 'Progresso' },
-];
 
 const DEFAULT_STEAM_STATUS: SteamStatus = {
   connected: false,
@@ -80,16 +26,18 @@ const DEFAULT_STEAM_STATUS: SteamStatus = {
   linkedAt: null,
 };
 
+type AppRoute = '/home' | '/login' | '/register' | '/profile' | '/settings' | `/profile/${string}`;
+
 export default function App() {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
-  const [routePath, setRoutePath] = useState(() => getNormalizedPath());
+  const [routePath, setRoutePath] = useState<AppRoute>(() => getNormalizedPath());
   const [authToken, setAuthToken] = useState<string | null>(() => getStoredToken());
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
   const [authSubmitting, setAuthSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  const [nameInput, setNameInput] = useState('');
+  const [nicknameInput, setNicknameInput] = useState('');
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
 
@@ -103,10 +51,22 @@ export default function App() {
   const [profileError, setProfileError] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
+  const [publicProfileUser, setPublicProfileUser] = useState<AuthUser | null>(null);
+  const [publicPlatinums, setPublicPlatinums] = useState<Platinum[]>([]);
+  const [publicStats, setPublicStats] = useState<Stats | null>(null);
+  const [publicSteamStatus, setPublicSteamStatus] = useState<SteamStatus>(DEFAULT_STEAM_STATUS);
+  const [publicProfileLoading, setPublicProfileLoading] = useState(false);
+  const [publicProfileError, setPublicProfileError] = useState<string | null>(null);
+
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [query, setQuery] = useState('');
   const [platformFilter, setPlatformFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+  const [selectedGame, setSelectedGame] = useState<Platinum | null>(null);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [achievementsLoading, setAchievementsLoading] = useState(false);
+  const [achievementsError, setAchievementsError] = useState<string | null>(null);
 
   const authHeaders = useMemo(
     () => (authToken ? { Authorization: `Bearer ${authToken}` } : {}),
@@ -114,12 +74,23 @@ export default function App() {
   );
 
   const isAuthenticated = Boolean(authToken && user);
+  const publicProfileName = getPublicProfileName(routePath);
+  const isPublicProfileRoute = Boolean(publicProfileName);
   const isHomeRoute = routePath === '/home';
-  const isProfileRoute = routePath === '/profile';
+  const isOwnProfileRoute = routePath === '/profile';
+  const isProfileRoute = isOwnProfileRoute || isPublicProfileRoute;
+  const isSettingsRoute = routePath === '/settings';
   const isLoginRoute = routePath === '/login';
   const isRegisterRoute = routePath === '/register';
-  const isPublicRoute = isLoginRoute || isRegisterRoute;
-  const isPrivateRoute = isHomeRoute || isProfileRoute;
+  const isPublicRoute = isLoginRoute || isRegisterRoute || isPublicProfileRoute;
+
+  const profileUser = isPublicProfileRoute ? publicProfileUser : user;
+  const profileStats = isPublicProfileRoute ? publicStats : stats;
+  const profilePlatinums = isPublicProfileRoute ? publicPlatinums : platinums;
+  const profileSteamStatus = isPublicProfileRoute ? publicSteamStatus : steamStatus;
+  const profileSteamLoading = isPublicProfileRoute ? false : steamLoading;
+  const profileLoadingData = isPublicProfileRoute ? publicProfileLoading : loadingData;
+  const profileSteamError = isPublicProfileRoute ? publicProfileError : steamError;
 
   const navigateTo = useCallback((path: string, replace = false) => {
     if (typeof window === 'undefined') {
@@ -151,30 +122,12 @@ export default function App() {
     }
   }, []);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const handlePopState = () => {
-      setRoutePath(getNormalizedPath());
-    };
-
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
+  const closeAchievementsModal = useCallback(() => {
+    setSelectedGame(null);
+    setAchievements([]);
+    setAchievementsError(null);
+    setAchievementsLoading(false);
   }, []);
-
-  useEffect(() => {
-    if (!isPublicRoute) {
-      return;
-    }
-
-    setAuthMode(isRegisterRoute ? 'register' : 'login');
-    setAuthError(null);
-  }, [isPublicRoute, isRegisterRoute]);
 
   const fetchDashboardData = useCallback(async () => {
     if (!authToken) {
@@ -226,6 +179,157 @@ export default function App() {
     }
   }, [authHeaders, authToken]);
 
+  const fetchPublicProfileData = useCallback(async (profileName: string) => {
+    const normalizedName = profileName.trim();
+    if (!normalizedName) {
+      setPublicProfileUser(null);
+      setPublicPlatinums([]);
+      setPublicStats(null);
+      setPublicSteamStatus(DEFAULT_STEAM_STATUS);
+      setPublicProfileError('Perfil invalido.');
+      setPublicProfileLoading(false);
+      return;
+    }
+
+    setPublicProfileLoading(true);
+    setPublicProfileError(null);
+
+    try {
+      const response = await fetch(`/api/public/profile/${encodeURIComponent(normalizedName)}`);
+      if (!response.ok) {
+        const message = await readErrorMessage(response, 'Nao foi possivel carregar este perfil agora.');
+        throw new Error(message);
+      }
+
+      const payload = (await response.json()) as {
+        profile?: unknown;
+        steamStatus?: unknown;
+        stats?: unknown;
+        platinums?: unknown;
+      };
+
+      const normalizedPlatinums = normalizePlatinums(payload.platinums);
+
+      setPublicProfileUser(normalizePublicUser(payload.profile, normalizedName));
+      setPublicSteamStatus(normalizeSteamStatus(payload.steamStatus));
+      setPublicPlatinums(normalizedPlatinums);
+      setPublicStats(normalizeStats(payload.stats, normalizedPlatinums.length));
+    } catch (error) {
+      console.error('Public profile fetch failed:', error);
+      setPublicProfileUser(null);
+      setPublicPlatinums([]);
+      setPublicStats(null);
+      setPublicSteamStatus(DEFAULT_STEAM_STATUS);
+      setPublicProfileError(error instanceof Error ? error.message : 'Nao foi possivel carregar este perfil agora.');
+    } finally {
+      setPublicProfileLoading(false);
+    }
+  }, []);
+
+  const handleSyncSteam = useCallback(async () => {
+    if (!authToken || steamLoading) {
+      return;
+    }
+
+    setSteamLoading(true);
+    setSteamError(null);
+
+    try {
+      const response = await fetch('/api/sync/me', {
+        method: 'POST',
+        headers: authHeaders,
+      });
+
+      if (!response.ok) {
+        const message = await readErrorMessage(response, 'Nao foi possivel sincronizar com a Steam.');
+        throw new Error(message);
+      }
+
+      for (let i = 0; i <= 5; i++) {
+        if (i > 0) await new Promise<void>((resolve) => setTimeout(resolve, 4000));
+        await fetchDashboardData();
+      }
+    } catch (error) {
+      console.error('Steam sync failed:', error);
+      setSteamError(error instanceof Error ? error.message : 'Falha ao sincronizar a Steam.');
+    } finally {
+      setSteamLoading(false);
+    }
+  }, [authHeaders, authToken, fetchDashboardData, steamLoading]);
+
+  const handleOpenGameDetails = useCallback(
+    async (game: Platinum) => {
+      setSelectedGame(game);
+      setAchievements([]);
+      setAchievementsError(null);
+
+      if (game.platform.toLowerCase() !== 'steam') {
+        setAchievementsError('Detalhes de conquistas disponiveis apenas para jogos da Steam no momento.');
+        return;
+      }
+
+      if (!game.externalId) {
+        setAchievementsError('Nao foi possivel identificar o jogo para buscar as conquistas.');
+        return;
+      }
+
+      setAchievementsLoading(true);
+
+      try {
+        const endpoint =
+          isPublicProfileRoute && publicProfileName
+            ? `/api/public/profile/${encodeURIComponent(publicProfileName)}/games/${encodeURIComponent(game.externalId)}/achievements`
+            : `/api/games/${encodeURIComponent(game.externalId)}/achievements`;
+
+        const requestOptions: RequestInit = {
+          method: 'GET',
+        };
+
+        if (!isPublicProfileRoute) {
+          requestOptions.headers = authHeaders;
+        }
+
+        const response = await fetch(endpoint, requestOptions);
+
+        if (!response.ok) {
+          const message = await readErrorMessage(response, 'Nao foi possivel carregar as conquistas do jogo.');
+          throw new Error(message);
+        }
+
+        const payload = (await response.json()) as unknown;
+        setAchievements(normalizeAchievements(payload));
+      } catch (error) {
+        console.error('Failed to load game achievements:', error);
+        setAchievementsError(error instanceof Error ? error.message : 'Falha ao carregar conquistas do jogo.');
+      } finally {
+        setAchievementsLoading(false);
+      }
+    },
+    [authHeaders, isPublicProfileRoute, publicProfileName]
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handlePopState = () => {
+      setRoutePath(getNormalizedPath());
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoginRoute && !isRegisterRoute) {
+      return;
+    }
+
+    setAuthMode(isRegisterRoute ? 'register' : 'login');
+    setAuthError(null);
+  }, [isLoginRoute, isRegisterRoute]);
+
   useEffect(() => {
     const checkSession = async () => {
       if (!authToken) {
@@ -262,7 +366,7 @@ export default function App() {
     }
 
     if (isAuthenticated) {
-      if (!isPrivateRoute) {
+      if (isLoginRoute || isRegisterRoute) {
         navigateTo('/home', true);
       }
       return;
@@ -271,7 +375,7 @@ export default function App() {
     if (!isPublicRoute) {
       navigateTo('/login', true);
     }
-  }, [authChecking, isAuthenticated, isPrivateRoute, isPublicRoute, navigateTo]);
+  }, [authChecking, isAuthenticated, isLoginRoute, isPublicRoute, isRegisterRoute, navigateTo]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -289,37 +393,19 @@ export default function App() {
     fetchSteamStatus();
   }, [fetchDashboardData, fetchSteamStatus, isAuthenticated]);
 
-  const handleSyncSteam = useCallback(async () => {
-    if (!authToken || steamLoading) {
+  useEffect(() => {
+    if (!isPublicProfileRoute || !publicProfileName) {
+      setPublicProfileUser(null);
+      setPublicPlatinums([]);
+      setPublicStats(null);
+      setPublicSteamStatus(DEFAULT_STEAM_STATUS);
+      setPublicProfileError(null);
+      setPublicProfileLoading(false);
       return;
     }
 
-    setSteamLoading(true);
-    setSteamError(null);
-
-    try {
-      const response = await fetch('/api/sync/me', {
-        method: 'POST',
-        headers: authHeaders,
-      });
-
-      if (!response.ok) {
-        const message = await readErrorMessage(response, 'Nao foi possivel sincronizar com a Steam.');
-        throw new Error(message);
-      }
-
-      // Sync roda em background no servidor — faz polling do dashboard para mostrar os dados chegando
-      for (let i = 0; i <= 5; i++) {
-        if (i > 0) await new Promise<void>((r) => setTimeout(r, 4000));
-        await fetchDashboardData();
-      }
-    } catch (error) {
-      console.error('Steam sync failed:', error);
-      setSteamError(error instanceof Error ? error.message : 'Falha ao sincronizar a Steam.');
-    } finally {
-      setSteamLoading(false);
-    }
-  }, [authHeaders, authToken, fetchDashboardData, steamLoading]);
+    fetchPublicProfileData(publicProfileName);
+  }, [fetchPublicProfileData, isPublicProfileRoute, publicProfileName]);
 
   useEffect(() => {
     if (!isAuthenticated || typeof window === 'undefined') {
@@ -346,14 +432,29 @@ export default function App() {
     window.history.replaceState({}, document.title, updatedURL);
   }, [fetchSteamStatus, handleSyncSteam, isAuthenticated]);
 
+  useEffect(() => {
+    if (!selectedGame) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeAchievementsModal();
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [closeAchievementsModal, selectedGame]);
+
   const totalAchievements = useMemo(
-    () => platinums.reduce((acc, game) => acc + game.total, 0),
-    [platinums]
+    () => profilePlatinums.reduce((acc, game) => acc + game.total, 0),
+    [profilePlatinums]
   );
 
   const unlockedAchievements = useMemo(
-    () => platinums.reduce((acc, game) => acc + game.unlocked, 0),
-    [platinums]
+    () => profilePlatinums.reduce((acc, game) => acc + game.unlocked, 0),
+    [profilePlatinums]
   );
 
   const completionRate =
@@ -361,24 +462,24 @@ export default function App() {
 
   const monthlyPlatinums = useMemo(() => {
     const now = new Date();
-    return platinums.filter((game) => {
+    return profilePlatinums.filter((game) => {
       if (!game.isPlatinum || !game.date) {
         return false;
       }
       const gameDate = new Date(game.date);
       return gameDate.getMonth() === now.getMonth() && gameDate.getFullYear() === now.getFullYear();
     }).length;
-  }, [platinums]);
+  }, [profilePlatinums]);
 
   const platforms = useMemo(
-    () => ['all', ...new Set(platinums.map((game) => game.platform))],
-    [platinums]
+    () => ['all', ...new Set(profilePlatinums.map((game) => game.platform))],
+    [profilePlatinums]
   );
 
   const filteredPlatinums = useMemo(() => {
     const normalizedQuery = query.toLowerCase().trim();
 
-    return platinums
+    return profilePlatinums
       .filter((game) => {
         const matchesQuery =
           normalizedQuery.length === 0 ||
@@ -404,12 +505,60 @@ export default function App() {
 
         return progressB - progressA;
       });
-  }, [platinums, platformFilter, query, statusFilter]);
+  }, [platformFilter, profilePlatinums, query, statusFilter]);
 
-  const progressGames = Math.max(platinums.length - (stats?.totalPlatinums ?? 0), 0);
+  const progressGames = Math.max(profilePlatinums.length - (profileStats?.totalPlatinums ?? 0), 0);
+
+  const achievedAchievements = useMemo(
+    () => achievements.filter((achievement) => achievement.achieved),
+    [achievements]
+  );
+
+  const missingAchievements = useMemo(
+    () => achievements.filter((achievement) => !achievement.achieved),
+    [achievements]
+  );
+
+  const userInitials = useMemo(() => {
+    const fullName = profileUser?.name?.trim() ?? '';
+    if (!fullName) {
+      return 'PL';
+    }
+
+    const parts = fullName.split(' ').filter(Boolean).slice(0, 2);
+    const initials = parts.map((part) => part[0]?.toUpperCase() ?? '').join('');
+    return initials || 'PL';
+  }, [profileUser?.name]);
+
+  const recentProfileGames = useMemo(() => {
+    return [...profilePlatinums]
+      .sort((a, b) => {
+        const dateA = getGameActivityTimestamp(a);
+        const dateB = getGameActivityTimestamp(b);
+        if (dateA !== dateB) {
+          return dateB - dateA;
+        }
+
+        const progressA = a.total > 0 ? a.unlocked / a.total : 0;
+        const progressB = b.total > 0 ? b.unlocked / b.total : 0;
+        return progressB - progressA;
+      })
+      .slice(0, 6);
+  }, [profilePlatinums]);
+
+  const almostPlatinumGames = useMemo(() => {
+    return [...profilePlatinums]
+      .filter((game) => !game.isPlatinum && game.total > 0)
+      .sort((a, b) => {
+        const progressA = a.unlocked / a.total;
+        const progressB = b.unlocked / b.total;
+        return progressB - progressA;
+      })
+      .slice(0, 4);
+  }, [profilePlatinums]);
 
   const resetAuthForm = () => {
-    setNameInput('');
+    setNicknameInput('');
     setEmailInput('');
     setPasswordInput('');
   };
@@ -424,7 +573,7 @@ export default function App() {
     const payload =
       authMode === 'login'
         ? { email: emailInput.trim(), password: passwordInput }
-        : { name: nameInput.trim(), email: emailInput.trim(), password: passwordInput };
+        : { nickname: nicknameInput.trim(), email: emailInput.trim(), password: passwordInput };
 
     try {
       const response = await fetch(endpoint, {
@@ -581,185 +730,193 @@ export default function App() {
 
   if (authChecking) {
     return (
-      <>
-        <div className="mx-auto flex w-full max-w-4xl flex-1 items-center justify-center px-4">
-          <div className="glass-panel flex items-center gap-3 px-6 py-4">
-            <LoaderCircle className="animate-spin text-black/45" size={18} />
-            <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-black/60">
-              Validando sessao...
-            </span>
-          </div>
+      <div className="mx-auto flex w-full max-w-4xl flex-1 items-center justify-center px-4">
+        <div className="glass-panel flex items-center gap-3 px-6 py-4">
+          <LoaderCircle className="animate-spin text-black/45" size={18} />
+          <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-black/60">
+            Validando sessao...
+          </span>
         </div>
-      </>
+      </div>
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isPublicProfileRoute) {
+    return (
+      <AuthPage
+        authMode={authMode}
+        authSubmitting={authSubmitting}
+        authError={authError}
+        nicknameInput={nicknameInput}
+        emailInput={emailInput}
+        passwordInput={passwordInput}
+        onNicknameChange={setNicknameInput}
+        onEmailChange={setEmailInput}
+        onPasswordChange={setPasswordInput}
+        onModeChange={handleModeChange}
+        onSubmit={handleAuthSubmit}
+      />
+    );
+  }
+
+  if (!isAuthenticated && isPublicProfileRoute) {
     return (
       <>
-        <main className="mx-auto flex w-full max-w-6xl flex-1 items-center px-4 py-10 sm:px-6 lg:px-8">
-          <div className="grid w-full gap-6 lg:grid-cols-2">
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45 }}
-              className="glass-panel p-8"
+        <header className="sticky top-0 z-40 border-b border-black/10 bg-[var(--bg-main)]/75 backdrop-blur-xl">
+          <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+            <div>
+              <p className="font-display text-xl leading-none tracking-tight">PlatOne</p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-black/55">Perfil publico</p>
+            </div>
+            <button
+              className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white"
+              type="button"
+              onClick={() => navigateTo('/login')}
             >
-              <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--ink-main)] text-[var(--bg-main)]">
-                  <ShieldCheck size={22} />
-                </div>
-                <div>
-                  <p className="font-display text-3xl leading-none">PlatOne</p>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-black/55">
-                    Secure Access Layer
-                  </p>
-                </div>
-              </div>
-
-              <h1 className="font-display text-4xl leading-tight sm:text-5xl">
-                Login e registro
-                <span className="text-[var(--brand-gold)]"> prontos para uso</span>
-              </h1>
-
-              <p className="mt-4 text-sm text-black/70 sm:text-base">
-                Crie sua conta para acessar o dashboard de conquistas, manter sessao ativa e sincronizar o progresso
-                em um fluxo seguro.
-              </p>
-
-              <div className="mt-8 grid grid-cols-2 gap-3">
-                <FeaturePill icon={<UserPlus size={14} />} text="Registro rapido" />
-                <FeaturePill icon={<Lock size={14} />} text="Sessao por token" />
-                <FeaturePill icon={<RefreshCw size={14} />} text="Login persistente" />
-                <FeaturePill icon={<Gamepad2 size={14} />} text="Dashboard protegido" />
-              </div>
-            </motion.section>
-
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.06 }}
-              className="glass-panel p-6 sm:p-8"
-            >
-              <div className="mb-6 inline-flex rounded-full border border-black/10 bg-white/65 p-1">
-                <button
-                  type="button"
-                  onClick={() => handleModeChange('login')}
-                  className={`rounded-full px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] transition-colors ${
-                    authMode === 'login' ? 'bg-[var(--ink-main)] text-white' : 'text-black/60 hover:bg-black/6'
-                  }`}
-                >
-                  Login
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleModeChange('register')}
-                  className={`rounded-full px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] transition-colors ${
-                    authMode === 'register' ? 'bg-[var(--ink-main)] text-white' : 'text-black/60 hover:bg-black/6'
-                  }`}
-                >
-                  Register
-                </button>
-              </div>
-
-              <form className="space-y-4" onSubmit={handleAuthSubmit}>
-                {authMode === 'register' && (
-                  <label className="block">
-                    <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">
-                      Nome
-                    </span>
-                    <div className="relative">
-                      <User className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-black/35" size={15} />
-                      <input
-                        type="text"
-                        value={nameInput}
-                        onChange={(event) => setNameInput(event.target.value)}
-                        className="w-full rounded-xl border border-black/10 bg-white/70 py-2.5 pl-10 pr-3 text-sm text-black/80 outline-none transition-all placeholder:text-black/35 focus:border-black/25 focus:bg-white"
-                        placeholder="Seu nome"
-                        required
-                      />
-                    </div>
-                  </label>
-                )}
-
-                <label className="block">
-                  <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">
-                    Email
-                  </span>
-                  <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-black/35" size={15} />
-                    <input
-                      type="email"
-                      value={emailInput}
-                      onChange={(event) => setEmailInput(event.target.value)}
-                      className="w-full rounded-xl border border-black/10 bg-white/70 py-2.5 pl-10 pr-3 text-sm text-black/80 outline-none transition-all placeholder:text-black/35 focus:border-black/25 focus:bg-white"
-                      placeholder="voce@platone.dev"
-                      required
-                    />
-                  </div>
-                </label>
-
-                <label className="block">
-                  <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">
-                    Senha
-                  </span>
-                  <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-black/35" size={15} />
-                    <input
-                      type="password"
-                      value={passwordInput}
-                      onChange={(event) => setPasswordInput(event.target.value)}
-                      className="w-full rounded-xl border border-black/10 bg-white/70 py-2.5 pl-10 pr-3 text-sm text-black/80 outline-none transition-all placeholder:text-black/35 focus:border-black/25 focus:bg-white"
-                      placeholder="Minimo 6 caracteres"
-                      required
-                      minLength={6}
-                    />
-                  </div>
-                </label>
-
-                {authError && (
-                  <p className="rounded-xl border border-red-300/55 bg-red-100/55 px-3 py-2 text-sm text-red-700">
-                    {authError}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={authSubmitting}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--ink-main)] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {authSubmitting ? (
-                    <>
-                      <LoaderCircle size={16} className="animate-spin" />
-                      Processando...
-                    </>
-                  ) : authMode === 'login' ? (
-                    <>
-                      <ShieldCheck size={16} />
-                      Entrar
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus size={16} />
-                      Criar conta
-                    </>
-                  )}
-                </button>
-              </form>
-
-              <p className="mt-5 rounded-xl border border-black/10 bg-black/[0.03] p-3 font-mono text-[11px] leading-relaxed text-black/60">
-                Contas criadas aqui liberam acesso ao dashboard e consulta no backend conectado ao MongoDB.
-              </p>
-            </motion.section>
+              Entrar
+            </button>
           </div>
+        </header>
+
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-6 pt-8 sm:px-6 lg:px-8 lg:pt-8">
+          {publicProfileLoading ? (
+            <div className="mx-auto flex w-full max-w-4xl flex-1 items-center justify-center px-4 py-10">
+              <div className="glass-panel flex items-center gap-3 px-6 py-4">
+                <LoaderCircle className="animate-spin text-black/45" size={18} />
+                <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-black/60">
+                  Carregando perfil...
+                </span>
+              </div>
+            </div>
+          ) : publicProfileError ? (
+            <div className="mx-auto w-full max-w-3xl rounded-2xl border border-red-300/55 bg-red-100/55 px-4 py-3 text-sm text-red-700">
+              {publicProfileError}
+            </div>
+          ) : (
+            <ProfilePage
+              user={profileUser}
+              userInitials={userInitials}
+              steamStatus={profileSteamStatus}
+              steamLoading={false}
+              loadingData={profileLoadingData}
+              steamError={profileSteamError}
+              stats={profileStats}
+              completionRate={completionRate}
+              recentProfileGames={recentProfileGames}
+              almostPlatinumGames={almostPlatinumGames}
+              progressGames={progressGames}
+              monthlyPlatinums={monthlyPlatinums}
+              onSyncSteam={() => undefined}
+              onConnectSteam={() => undefined}
+              onDisconnectSteam={() => undefined}
+              onOpenGameDetails={handleOpenGameDetails}
+              handleGameImageError={handleGameImageError}
+              formatDateTime={formatDateTime}
+              isReadOnly
+            />
+          )}
         </main>
+
+        <footer className="border-t border-black/10 bg-white/30">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-4 text-[10px] uppercase tracking-[0.2em] text-black/50 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+            <span>PlatOne Control Layer | React + Go</span>
+            <span>Ultimo sync: {profileStats?.lastSync ? formatDateTime(profileStats.lastSync) : 'nunca'}</span>
+          </div>
+        </footer>
+
+        <AnimatePresence>
+          {selectedGame && (
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-8 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeAchievementsModal}
+            >
+              <motion.section
+                className="glass-panel w-full max-w-4xl overflow-hidden"
+                initial={{ opacity: 0, y: 16, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                transition={{ duration: 0.2 }}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="border-b border-black/10 px-5 py-4 sm:px-6">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-black/55">Detalhes do jogo</p>
+                      <h2 className="mt-1 font-display text-3xl leading-tight">{selectedGame.title}</h2>
+                      <p className="mt-2 text-sm text-black/65">
+                        {selectedGame.unlocked}/{selectedGame.total} conquistas no total
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="rounded-lg p-2 text-black/50 transition-colors hover:bg-black/5 hover:text-black/80"
+                      onClick={closeAchievementsModal}
+                      aria-label="Fechar detalhes"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="max-h-[70vh] overflow-y-auto px-5 py-4 sm:px-6">
+                  {achievementsLoading ? (
+                    <div className="flex min-h-52 items-center justify-center">
+                      <LoaderCircle className="animate-spin text-black/35" size={28} />
+                    </div>
+                  ) : achievementsError ? (
+                    <p className="rounded-xl border border-red-300/55 bg-red-100/55 px-3 py-2 text-sm text-red-700">
+                      {achievementsError}
+                    </p>
+                  ) : (
+                    <div className="space-y-6">
+                      <div>
+                        <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-500/12 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-emerald-700">
+                          <CheckCircle2 size={13} />
+                          Conquistadas ({achievedAchievements.length})
+                        </div>
+                        <div className="space-y-2">
+                          {achievedAchievements.length > 0 ? (
+                            achievedAchievements.map((achievement) => (
+                              <AchievementRow key={achievement.id} achievement={achievement} />
+                            ))
+                          ) : (
+                            <p className="text-sm text-black/60">Nenhuma conquista obtida ainda.</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-amber-500/12 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-amber-700">
+                          <Clock3 size={13} />
+                          Faltando ({missingAchievements.length})
+                        </div>
+                        <div className="space-y-2">
+                          {missingAchievements.length > 0 ? (
+                            missingAchievements.map((achievement) => (
+                              <AchievementRow key={achievement.id} achievement={achievement} />
+                            ))
+                          ) : (
+                            <p className="text-sm text-black/60">Voce ja desbloqueou todas as conquistas deste jogo.</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.section>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </>
     );
   }
 
   return (
     <>
-
       <header className="sticky top-0 z-40 border-b border-black/10 bg-[var(--bg-main)]/75 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
@@ -792,15 +949,27 @@ export default function App() {
             </button>
             <button
               className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
-                isProfileRoute
+                isOwnProfileRoute
                   ? 'border-transparent bg-[var(--ink-main)] text-white'
                   : 'border-black/10 bg-white/65 text-black/75 hover:bg-white'
               }`}
               type="button"
               onClick={() => navigateTo('/profile')}
-              disabled={isProfileRoute}
+              disabled={isOwnProfileRoute}
             >
               Perfil
+            </button>
+            <button
+              className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
+                isSettingsRoute
+                  ? 'border-transparent bg-[var(--ink-main)] text-white'
+                  : 'border-black/10 bg-white/65 text-black/75 hover:bg-white'
+              }`}
+              type="button"
+              onClick={() => navigateTo('/settings')}
+              disabled={isSettingsRoute}
+            >
+              Configuracoes
             </button>
             <button
               className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white"
@@ -816,495 +985,206 @@ export default function App() {
 
       <main
         className={`mx-auto w-full max-w-7xl flex-1 px-4 pt-8 sm:px-6 lg:px-8 ${
-          isProfileRoute ? 'pb-2 lg:pt-8' : 'pb-10 lg:pt-10'
+          isProfileRoute || isSettingsRoute ? 'pb-2 lg:pt-8' : 'pb-10 lg:pt-10'
         }`}
       >
-        {isProfileRoute ? (
-          <div className="mx-auto w-full max-w-3xl">
-            <motion.section
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35 }}
-              className="glass-panel p-6 sm:p-8"
-            >
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-black/5 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.24em] text-black/60">
-                <User size={13} />
-                Perfil
-              </div>
-
-              <h1 className="font-display text-4xl leading-tight sm:text-5xl">Minha conta</h1>
-              <p className="mt-3 text-sm text-black/70 sm:text-base">
-                Veja os dados da sua conta e gerencie suas configuracoes de acesso.
-              </p>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-black/10 bg-white/55 p-4">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">Nome</p>
-                  <p className="mt-1 text-base font-semibold text-black/85">{user?.name}</p>
-                </div>
-                <div className="rounded-xl border border-black/10 bg-white/55 p-4">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">Email</p>
-                  <p className="mt-1 text-base font-semibold text-black/85">{user?.email}</p>
-                </div>
-                <div className="rounded-xl border border-black/10 bg-white/55 p-4 sm:col-span-2">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">Conta criada em</p>
-                  <p className="mt-1 text-base font-semibold text-black/85">
-                    {user?.createdAt ? formatDateTime(user.createdAt) : 'Nao informado'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 rounded-2xl border border-black/10 bg-white/55 p-4 sm:p-5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="font-display text-2xl leading-tight">Contas conectadas</p>
-                  <span
-                    className={`rounded-full px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] ${
-                      steamStatus.connected ? 'bg-emerald-500/12 text-emerald-700' : 'bg-amber-500/12 text-amber-700'
-                    }`}
-                  >
-                    {steamStatus.connected ? 'Steam conectada' : 'Steam pendente'}
-                  </span>
-                </div>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-black/10 bg-white/70 p-4 sm:col-span-2">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">Conta Steam</p>
-                    <p className="mt-1 text-sm text-black/75">
-                      {steamStatus.steamId ? `SteamID: ${steamStatus.steamId}` : 'Nenhuma conta Steam conectada.'}
-                    </p>
-                    <p className="mt-1 text-xs text-black/55">
-                      {steamStatus.linkedAt ? `Conectada em ${formatDateTime(steamStatus.linkedAt)}` : 'Sem vinculacao ativa'}
-                    </p>
-                  </div>
-                </div>
-
-                {steamError && (
-                  <p className="mt-3 rounded-lg border border-amber-300/70 bg-amber-100/70 px-3 py-2 text-sm text-amber-800">
-                    {steamError}
-                  </p>
-                )}
-
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  {steamStatus.connected ? (
-                    <>
-                      <button
-                        className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                        type="button"
-                        onClick={handleSyncSteam}
-                        disabled={steamLoading || loadingData}
-                      >
-                        <RefreshCw size={14} className={steamLoading ? 'animate-spin' : ''} />
-                        Sync Steam
-                      </button>
-                      <button
-                        className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                        type="button"
-                        onClick={handleDisconnectSteam}
-                        disabled={steamLoading}
-                      >
-                        <LogOut size={14} />
-                        Desconectar Steam
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                      type="button"
-                      onClick={handleConnectSteam}
-                      disabled={steamLoading}
-                    >
-                      {steamLoading ? <LoaderCircle size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
-                      Conectar Steam
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-8 rounded-2xl border border-red-300/50 bg-red-100/45 p-4 sm:p-5">
-                <p className="font-display text-2xl leading-tight text-red-700">Zona de perigo</p>
-                <p className="mt-2 text-sm text-red-700/90">
-                  Apagar sua conta remove o acesso e os dados de autenticacao de forma permanente.
-                </p>
-                {profileError && (
-                  <p className="mt-3 rounded-lg border border-red-300/70 bg-white/70 px-3 py-2 text-sm text-red-700">
-                    {profileError}
-                  </p>
-                )}
-                <button
-                  type="button"
-                  onClick={handleDeleteAccount}
-                  disabled={deleteSubmitting}
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {deleteSubmitting ? (
-                    <>
-                      <LoaderCircle size={16} className="animate-spin" />
-                      Apagando conta...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 size={16} />
-                      Apagar minha conta
-                    </>
-                  )}
-                </button>
-              </div>
-            </motion.section>
-          </div>
+        {isSettingsRoute ? (
+          <SettingsPage
+            user={user}
+            steamStatus={steamStatus}
+            steamLoading={steamLoading}
+            loadingData={loadingData}
+            steamError={steamError}
+            profileError={profileError}
+            deleteSubmitting={deleteSubmitting}
+            onSyncSteam={handleSyncSteam}
+            onConnectSteam={handleConnectSteam}
+            onDisconnectSteam={handleDisconnectSteam}
+            onDeleteAccount={handleDeleteAccount}
+            formatDateTime={formatDateTime}
+          />
+        ) : isProfileRoute ? (
+          <ProfilePage
+            user={profileUser}
+            userInitials={userInitials}
+            steamStatus={profileSteamStatus}
+            steamLoading={profileSteamLoading}
+            loadingData={profileLoadingData}
+            steamError={profileSteamError}
+            stats={profileStats}
+            completionRate={completionRate}
+            recentProfileGames={recentProfileGames}
+            almostPlatinumGames={almostPlatinumGames}
+            progressGames={progressGames}
+            monthlyPlatinums={monthlyPlatinums}
+            onSyncSteam={handleSyncSteam}
+            onConnectSteam={handleConnectSteam}
+            onDisconnectSteam={handleDisconnectSteam}
+            onOpenGameDetails={handleOpenGameDetails}
+            handleGameImageError={handleGameImageError}
+            formatDateTime={formatDateTime}
+            isReadOnly={isPublicProfileRoute}
+          />
         ) : (
-          <>
-            <motion.section
-              initial={{ opacity: 0, y: 26 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55 }}
-              className="mb-8 grid gap-5 lg:grid-cols-3"
-            >
-
-          <div className="glass-panel w-full p-6 sm:p-8 lg:col-span-3">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-black/5 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.24em] text-black/60">
-              <Sparkles size={12} />
-              Performance Snapshot
-            </div>
-
-            <h1 className="font-display text-4xl leading-[0.95] tracking-tight sm:text-5xl lg:text-6xl">
-              Seu painel de
-              <span className="text-[var(--brand-gold)]"> conquista total</span>
-            </h1>
-            <p className="mt-4 max-w-4xl text-sm text-black/70 sm:text-base">
-              Veja progresso e platinas concluidas!
-            </p>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <StatTile label="Platinas" value={stats?.totalPlatinums ?? 0} helper="Titulos finalizados" />
-              <StatTile label="Jogos" value={stats?.totalGames ?? 0} helper="Biblioteca sincronizada" />
-              <StatTile label="No mes" value={monthlyPlatinums} helper="Platinas recentes" />
-            </div>
-          </div>
-          
-        </motion.section>
-
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.08 }}
-          className="glass-panel mb-6 p-4 sm:p-5"
-        >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative w-full lg:max-w-md">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-black/35"
-                size={16}
-              />
-              <input
-                type="text"
-                placeholder="Buscar jogo ou plataforma..."
-                className="w-full rounded-xl border border-black/10 bg-white/70 py-2.5 pl-10 pr-3 text-sm text-black/80 outline-none transition-all placeholder:text-black/35 focus:border-black/25 focus:bg-white"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-              />
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <Filter size={15} className="text-black/45" />
-              {STATUS_OPTIONS.map((status) => (
-                <button
-                  key={status.value}
-                  type="button"
-                  onClick={() => setStatusFilter(status.value)}
-                  className={`rounded-full px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] transition-all ${
-                    statusFilter === status.value
-                      ? 'bg-[var(--ink-main)] text-[var(--bg-main)]'
-                      : 'bg-black/5 text-black/60 hover:bg-black/10'
-                  }`}
-                >
-                  {status.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="inline-flex items-center gap-1 rounded-xl border border-black/10 bg-white/65 p-1">
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                className={`rounded-lg p-2 transition-colors ${
-                  viewMode === 'grid' ? 'bg-[var(--ink-main)] text-white' : 'text-black/55 hover:bg-black/5'
-                }`}
-                aria-label="Alternar para grade"
-              >
-                <LayoutGrid size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                className={`rounded-lg p-2 transition-colors ${
-                  viewMode === 'list' ? 'bg-[var(--ink-main)] text-white' : 'text-black/55 hover:bg-black/5'
-                }`}
-                aria-label="Alternar para lista"
-              >
-                <ListIcon size={16} />
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {platforms.map((platform) => (
-              <button
-                key={platform}
-                type="button"
-                onClick={() => setPlatformFilter(platform)}
-                className={`rounded-full border px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] transition-all ${
-                  platformFilter === platform
-                    ? 'border-transparent bg-gradient-to-r from-[var(--brand-cyan)] via-[var(--brand-gold)] to-[var(--brand-rose)] text-[var(--ink-main)]'
-                    : 'border-black/10 bg-white/55 text-black/60 hover:bg-white/80'
-                }`}
-              >
-                {platform === 'all' ? 'Todas plataformas' : platform}
-              </button>
-            ))}
-          </div>
-        </motion.section>
-
-        {loadingData && (
-          <div className="glass-panel flex h-64 items-center justify-center p-6">
-            <RefreshCw className="animate-spin text-black/25" size={40} />
-          </div>
-        )}
-
-        {!loadingData && dataError && (
-          <div className="glass-panel p-6">
-            <p className="font-display text-2xl">Erro de sincronizacao</p>
-            <p className="mt-2 text-sm text-black/70">{dataError}</p>
-          </div>
-        )}
-
-        {!loadingData && !dataError && filteredPlatinums.length === 0 && (
-          <div className="glass-panel p-8 text-center">
-            <Gamepad2 className="mx-auto mb-4 text-black/35" size={38} />
-            <p className="font-display text-3xl">Nenhum jogo encontrado</p>
-            <p className="mt-2 text-sm text-black/65">Ajuste filtros ou termo de busca para encontrar resultados.</p>
-          </div>
-        )}
-
-            {!loadingData && !dataError && filteredPlatinums.length > 0 && (
-              <div
-                className={
-                  viewMode === 'grid'
-                    ? 'grid grid-cols-1 justify-items-center gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
-                    : 'space-y-3'
-                }
-              >
-                <AnimatePresence mode="popLayout">
-                  {filteredPlatinums.map((game, index) => (
-                    <GameCard key={game.id} game={game} viewMode={viewMode} order={index} />
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
-          </>
+          <HomePage
+            stats={stats}
+            monthlyPlatinums={monthlyPlatinums}
+            query={query}
+            onQueryChange={setQuery}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            platforms={platforms}
+            platformFilter={platformFilter}
+            onPlatformFilterChange={setPlatformFilter}
+            loadingData={loadingData}
+            dataError={dataError}
+            filteredPlatinums={filteredPlatinums}
+            onOpenGameDetails={handleOpenGameDetails}
+            handleGameImageError={handleGameImageError}
+            formatDate={formatDate}
+          />
         )}
       </main>
 
       <footer className="border-t border-black/10 bg-white/30">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-4 text-[10px] uppercase tracking-[0.2em] text-black/50 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <span>PlatOne Control Layer | React + Go</span>
-          <span>Ultimo sync: {stats?.lastSync ? formatDateTime(stats.lastSync) : 'nunca'}</span>
+          <span>Ultimo sync: {profileStats?.lastSync ? formatDateTime(profileStats.lastSync) : 'nunca'}</span>
         </div>
       </footer>
 
+      <AnimatePresence>
+        {selectedGame && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-8 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={closeAchievementsModal}
+          >
+            <motion.section
+              className="glass-panel w-full max-w-4xl overflow-hidden"
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.98 }}
+              transition={{ duration: 0.2 }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="border-b border-black/10 px-5 py-4 sm:px-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-black/55">Detalhes do jogo</p>
+                    <h2 className="mt-1 font-display text-3xl leading-tight">{selectedGame.title}</h2>
+                    <p className="mt-2 text-sm text-black/65">
+                      {selectedGame.unlocked}/{selectedGame.total} conquistas no total
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="rounded-lg p-2 text-black/50 transition-colors hover:bg-black/5 hover:text-black/80"
+                    onClick={closeAchievementsModal}
+                    aria-label="Fechar detalhes"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="max-h-[70vh] overflow-y-auto px-5 py-4 sm:px-6">
+                {achievementsLoading ? (
+                  <div className="flex min-h-52 items-center justify-center">
+                    <LoaderCircle className="animate-spin text-black/35" size={28} />
+                  </div>
+                ) : achievementsError ? (
+                  <p className="rounded-xl border border-red-300/55 bg-red-100/55 px-3 py-2 text-sm text-red-700">
+                    {achievementsError}
+                  </p>
+                ) : (
+                  <div className="space-y-6">
+                    <div>
+                      <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-500/12 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-emerald-700">
+                        <CheckCircle2 size={13} />
+                        Conquistadas ({achievedAchievements.length})
+                      </div>
+                      <div className="space-y-2">
+                        {achievedAchievements.length > 0 ? (
+                          achievedAchievements.map((achievement) => (
+                            <AchievementRow key={achievement.id} achievement={achievement} />
+                          ))
+                        ) : (
+                          <p className="text-sm text-black/60">Nenhuma conquista obtida ainda.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-amber-500/12 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-amber-700">
+                        <Clock3 size={13} />
+                        Faltando ({missingAchievements.length})
+                      </div>
+                      <div className="space-y-2">
+                        {missingAchievements.length > 0 ? (
+                          missingAchievements.map((achievement) => (
+                            <AchievementRow key={achievement.id} achievement={achievement} />
+                          ))
+                        ) : (
+                          <p className="text-sm text-black/60">Voce ja desbloqueou todas as conquistas deste jogo.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.section>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
 
-function FeaturePill({ icon, text }: { icon: ReactNode; text: string }) {
+function AchievementRow({ achievement }: { key?: string; achievement: Achievement }) {
+  const iconSource = achievement.achieved ? achievement.icon : achievement.iconGray ?? achievement.icon;
+
   return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/60 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-black/65">
-      {icon}
-      <span>{text}</span>
-    </div>
-  );
-}
-
-function StatTile({
-  label,
-  value,
-  helper,
-}: {
-  label: string;
-  value: number | string;
-  helper: string;
-}) {
-  return (
-    <div className="rounded-xl border border-black/10 bg-white/55 p-3">
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-black/55">{label}</p>
-      <p className="mt-1 font-display text-3xl leading-none">{value}</p>
-      <p className="mt-1 text-xs text-black/55">{helper}</p>
-    </div>
-  );
-}
-
-type GameCardProps = {
-  key?: string;
-  game: Platinum;
-  viewMode: ViewMode;
-  order: number;
-};
-
-function GameCard({
-  game,
-  viewMode,
-  order,
-}: GameCardProps) {
-  const completion = game.total > 0 ? Math.round((game.unlocked / game.total) * 100) : 0;
-
-  if (viewMode === 'list') {
-    return (
-      <motion.div
-        layout
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ delay: order * 0.03, duration: 0.28 }}
-        className="glass-panel flex items-center gap-3 p-3.5 sm:gap-5 sm:p-4"
-      >
-        <div className="h-14 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-zinc-200 sm:h-16 sm:w-28">
+    <div className="flex items-start gap-3 rounded-xl border border-black/10 bg-white/60 p-3">
+      <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-black/5">
+        {iconSource ? (
           <img
-            src={game.icon}
-            alt={game.title}
-            className="h-full w-full object-cover"
-            data-backup-src={game.backupIcon ?? ''}
-            data-fallback-src={game.fallbackIcon}
-            onError={handleGameImageError}
+            src={iconSource}
+            alt={achievement.name}
+            className={`h-full w-full object-cover ${achievement.achieved ? '' : 'grayscale'}`}
             loading="lazy"
             decoding="async"
             referrerPolicy="no-referrer"
           />
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="mb-1 flex items-center gap-2">
-            <span
-              className={`rounded-full px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] ${
-                game.platform === 'Steam'
-                  ? 'bg-blue-500/10 text-blue-600'
-                  : game.platform === 'Xbox'
-                    ? 'bg-green-500/10 text-green-600'
-                    : 'bg-indigo-500/10 text-indigo-600'
-              }`}
-            >
-              {game.platform}
-            </span>
-            <h3 className="truncate text-sm font-semibold sm:text-base">{game.title}</h3>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-[0.13em] text-black/45">
-            <span>Conquistas: {game.unlocked}/{game.total}</span>
-            <span>Progresso: {completion}%</span>
-            {game.date && <span>Finalizado: {formatDate(game.date)}</span>}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 sm:gap-3">
-          {game.isPlatinum ? (
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.15em] text-emerald-700">
-              <CheckCircle2 size={14} />
-              <span>Platinado</span>
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-black/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.15em] text-black/55">
-              <Clock3 size={14} />
-              <span>Progresso</span>
-            </div>
-          )}
-
-          <button
-            type="button"
-            className="rounded-lg p-2 text-black/45 transition-colors hover:bg-black/5 hover:text-black/80"
-            aria-label={`Abrir detalhes de ${game.title}`}
-          >
-            <ExternalLink size={14} />
-          </button>
-        </div>
-      </motion.div>
-    );
-  }
-
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ delay: order * 0.04, duration: 0.32 }}
-      whileHover={{ y: -5, rotate: -0.1 }}
-      className="glass-panel group flex w-full max-w-[21.5rem] cursor-pointer flex-col overflow-hidden"
-    >
-      <div className="relative aspect-video overflow-hidden bg-zinc-100">
-        <img
-          src={game.icon}
-          alt={game.title}
-          className="h-full w-full object-cover saturate-75 transition-all duration-500 group-hover:scale-105 group-hover:saturate-100"
-          data-backup-src={game.backupIcon ?? ''}
-          data-fallback-src={game.fallbackIcon}
-          onError={handleGameImageError}
-          loading="lazy"
-          decoding="async"
-          referrerPolicy="no-referrer"
-        />
-
-        <div className="absolute left-3 top-3">
-          <span
-            className={`rounded-full px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.12em] backdrop-blur-md ${
-              game.platform === 'Steam'
-                ? 'bg-blue-500/80 text-white'
-                : game.platform === 'Xbox'
-                  ? 'bg-green-500/80 text-white'
-                  : 'bg-indigo-500/80 text-white'
-            }`}
-          >
-            {game.platform}
-          </span>
-        </div>
-
-        {game.isPlatinum && (
-          <div className="absolute right-3 top-3">
-            <div className="rounded-full bg-emerald-400 p-1.5 text-black shadow-lg shadow-emerald-500/25">
-              <Trophy size={14} />
-            </div>
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-black/35">
+            <Trophy size={14} />
           </div>
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-4">
-        <h3 className="font-display text-[1.4rem] leading-tight">{game.title}</h3>
-
-        <div className="mt-4 space-y-3">
-          <div className="flex items-end justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">
-            <span>Progresso</span>
-            <span className="font-semibold text-black/80">{completion}%</span>
-          </div>
-
-          <div className="h-1.5 overflow-hidden rounded-full bg-black/10">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${completion}%` }}
-              transition={{ duration: 0.9, delay: 0.15 }}
-              className={`h-full ${
-                game.isPlatinum
-                  ? 'bg-gradient-to-r from-emerald-400 to-emerald-600'
-                  : 'bg-gradient-to-r from-[var(--ink-main)] to-black/65'
-              }`}
-            />
-          </div>
-
-          <div className="flex items-center justify-between border-t border-black/10 pt-2 font-mono text-[10px] uppercase tracking-[0.13em] text-black/50">
-            <span>
-              {game.unlocked} / {game.total}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-semibold text-black/85">{achievement.name}</p>
+          {achievement.hidden && (
+            <span className="rounded-full bg-black/8 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-black/55">
+              Oculta
             </span>
-            <span>{game.date ? formatDate(game.date) : 'Pendente'}</span>
-          </div>
+          )}
         </div>
+        {achievement.description && <p className="mt-1 text-xs text-black/65">{achievement.description}</p>}
+        {achievement.achieved && achievement.unlockTime && (
+          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-700">
+            Desbloqueada em {formatDateTime(achievement.unlockTime)}
+          </p>
+        )}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -1329,7 +1209,7 @@ function handleGameImageError(event: SyntheticEvent<HTMLImageElement>) {
   image.onerror = null;
 }
 
-function normalizePath(pathname: string): '/home' | '/login' | '/register' | '/profile' {
+function normalizePath(pathname: string): AppRoute {
   if (pathname === '/login') {
     return '/login';
   }
@@ -1342,15 +1222,43 @@ function normalizePath(pathname: string): '/home' | '/login' | '/register' | '/p
     return '/profile';
   }
 
+  if (pathname.startsWith('/profile/')) {
+    const rawSegment = pathname.slice('/profile/'.length).split('/')[0]?.trim() ?? '';
+    if (rawSegment) {
+      return `/profile/${rawSegment}`;
+    }
+  }
+
+  if (pathname === '/settings') {
+    return '/settings';
+  }
+
   return '/home';
 }
 
-function getNormalizedPath(): '/home' | '/login' | '/register' | '/profile' {
+function getNormalizedPath(): AppRoute {
   if (typeof window === 'undefined') {
     return '/home';
   }
 
   return normalizePath(window.location.pathname);
+}
+
+function getPublicProfileName(routePath: AppRoute): string | null {
+  if (!routePath.startsWith('/profile/')) {
+    return null;
+  }
+
+  const rawName = routePath.slice('/profile/'.length).trim();
+  if (!rawName) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(rawName);
+  } catch {
+    return rawName;
+  }
 }
 
 function getStoredToken(): string | null {
@@ -1364,16 +1272,39 @@ async function readErrorMessage(
   response: Response,
   fallback = 'Ocorreu um erro na autenticacao.'
 ): Promise<string> {
+  let bodyText = '';
+
   try {
-    const payload = (await response.json()) as { error?: string };
-    if (payload?.error) {
-      return payload.error;
-    }
-  } catch (parseError) {
-    console.error('Error parsing API error payload:', parseError);
+    bodyText = await response.text();
+  } catch (readError) {
+    console.error('Error reading API error payload:', readError);
+    return fallback;
   }
 
-  return fallback;
+  const trimmedBody = bodyText.trim();
+  if (!trimmedBody) {
+    return fallback;
+  }
+
+  const contentType = (response.headers.get('content-type') ?? '').toLowerCase();
+  const looksLikeJson = contentType.includes('application/json') || trimmedBody.startsWith('{');
+
+  if (looksLikeJson) {
+    try {
+      const payload = JSON.parse(trimmedBody) as { error?: string };
+      if (typeof payload?.error === 'string' && payload.error.trim().length > 0) {
+        return payload.error;
+      }
+    } catch {
+      // Ignore parsing failure and fallback to plain text below.
+    }
+  }
+
+  if (trimmedBody.startsWith('<')) {
+    return fallback;
+  }
+
+  return trimmedBody;
 }
 
 function formatDate(value: string): string {
@@ -1478,8 +1409,7 @@ function normalizePlatinum(entry: unknown, index: number): Platinum {
     readString(metadata, 'title', 'name') ??
     `Jogo ${index + 1}`;
 
-  const platform =
-    readString(record, 'platform') ?? readString(metadata, 'platform') ?? 'Unknown';
+  const platform = readString(record, 'platform') ?? readString(metadata, 'platform') ?? 'Unknown';
 
   const unlocked =
     readNumber(record, 'unlocked', 'unlocked_count') ??
@@ -1501,21 +1431,32 @@ function normalizePlatinum(entry: unknown, index: number): Platinum {
     readString(metadata, 'date', 'validation_date') ??
     null;
 
-  const externalId =
-    readString(record, 'external_id', 'game_id', 'gameId') ?? readString(metadata, 'external_id', 'game_id');
-
   const storedIcon = readString(record, 'icon', 'image') ?? readString(metadata, 'icon', 'image');
   const storedBackupIcon =
-    readString(record, 'icon_fallback', 'thumbnail') ?? readString(metadata, 'icon_fallback', 'thumbnail');
+    readString(record, 'icon_fallback', 'thumbnail') ??
+    readString(metadata, 'icon_fallback', 'thumbnail');
+
+  const rawExternalId =
+    readString(record, 'external_id') ??
+    readString(metadata, 'external_id') ??
+    readString(record, 'game_id', 'gameId') ??
+    readString(metadata, 'game_id');
+
+  const externalId = normalizeGameExternalId(platform, rawExternalId, storedIcon, storedBackupIcon);
 
   const fallbackIcon = createFallbackIcon(title);
-  const icon = resolvePreferredGameArtwork(platform, externalId, storedIcon ?? storedBackupIcon) ?? storedIcon ?? storedBackupIcon ?? fallbackIcon;
+  const icon =
+    resolvePreferredGameArtwork(platform, externalId, storedIcon ?? storedBackupIcon) ??
+    storedIcon ??
+    storedBackupIcon ??
+    fallbackIcon;
   const backupIcon = pickBackupGameArtwork(icon, storedBackupIcon ?? storedIcon, fallbackIcon);
 
   return {
     id,
     title,
     platform,
+    externalId: externalId ?? null,
     unlocked,
     total: total > 0 ? total : unlocked,
     isPlatinum,
@@ -1523,6 +1464,63 @@ function normalizePlatinum(entry: unknown, index: number): Platinum {
     icon,
     backupIcon,
     fallbackIcon,
+  };
+}
+
+function normalizeGameExternalId(
+  platform: string,
+  externalId: string | undefined,
+  primaryImage: string | undefined,
+  backupImage: string | undefined
+): string | undefined {
+  const normalized = externalId?.trim();
+
+  if (platform.toLowerCase() !== 'steam') {
+    return normalized;
+  }
+
+  if (normalized && /^\d+$/.test(normalized)) {
+    return normalized;
+  }
+
+  return extractSteamAppIDFromImage(primaryImage) ?? extractSteamAppIDFromImage(backupImage);
+}
+
+function extractSteamAppIDFromImage(image: string | undefined): string | undefined {
+  if (!image) {
+    return undefined;
+  }
+
+  const match = image.match(/\/apps\/(\d+)\//i);
+  return match?.[1];
+}
+
+function normalizeAchievements(payload: unknown): Achievement[] {
+  if (!Array.isArray(payload)) {
+    return [];
+  }
+
+  return payload
+    .map((entry, index) => normalizeAchievement(entry, index))
+    .filter((achievement): achievement is Achievement => achievement !== null);
+}
+
+function normalizeAchievement(entry: unknown, index: number): Achievement | null {
+  const record = asRecord(entry);
+  const id = readString(record, 'id', 'apiName', 'apiname');
+  if (!id) {
+    return null;
+  }
+
+  return {
+    id,
+    name: readString(record, 'name', 'displayName') ?? `Conquista ${index + 1}`,
+    description: readString(record, 'description') ?? '',
+    icon: readString(record, 'icon') ?? null,
+    iconGray: readString(record, 'iconGray', 'icon_gray', 'icongray') ?? null,
+    hidden: readBoolean(record, 'hidden') ?? false,
+    achieved: readBoolean(record, 'achieved') ?? false,
+    unlockTime: readString(record, 'unlockTime', 'unlock_time') ?? null,
   };
 }
 
@@ -1544,6 +1542,18 @@ function normalizeSteamStatus(payload: unknown): SteamStatus {
     connected,
     steamId: connected ? readString(record, 'steamId', 'steam_id') ?? null : null,
     linkedAt: connected ? readString(record, 'linkedAt', 'linked_at') ?? null : null,
+  };
+}
+
+function normalizePublicUser(payload: unknown, fallbackName: string): AuthUser {
+  const record = asRecord(payload);
+  const name = readString(record, 'name') ?? fallbackName;
+
+  return {
+    id: readString(record, 'id') ?? `public-${name.toLowerCase().replace(/\s+/g, '-')}`,
+    name,
+    email: readString(record, 'email') ?? '',
+    createdAt: readString(record, 'createdAt', 'created_at') ?? new Date().toISOString(),
   };
 }
 
@@ -1594,14 +1604,27 @@ function upgradeSteamCommunityIcon(image: string | undefined): string | undefine
 }
 
 function createFallbackIcon(title: string): string {
-  const initials = title
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('') || 'PL';
+  const initials =
+    title
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? '')
+      .join('') || 'PL';
 
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='#3fa9c9'/><stop offset='100%' stop-color='#d6806a'/></linearGradient></defs><rect width='160' height='160' fill='url(#g)'/><text x='80' y='92' text-anchor='middle' font-family='Arial, sans-serif' font-size='48' font-weight='700' fill='white'>${initials}</text></svg>`;
 
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+function getGameActivityTimestamp(game: Platinum): number {
+  if (game.date) {
+    const parsedDate = Date.parse(game.date);
+    if (Number.isFinite(parsedDate)) {
+      return parsedDate;
+    }
+  }
+
+  const completion = game.total > 0 ? game.unlocked / game.total : 0;
+  return Math.round(completion * 1_000_000);
 }

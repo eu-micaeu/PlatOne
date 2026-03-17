@@ -158,6 +158,35 @@ async function proxyBackendGet(pathname: string, res: express.Response) {
   }
 }
 
+async function proxyBackendGameAchievements(steamID: string, gameID: string, res: express.Response) {
+  try {
+    const encodedSteamID = encodeURIComponent(steamID);
+    const encodedGameID = encodeURIComponent(gameID);
+    const response = await fetch(`${BACKEND_URL}/api/achievements/${encodedSteamID}/${encodedGameID}`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    const contentType = response.headers.get("content-type") ?? "application/json";
+    const body = await response.text();
+
+    res.status(response.status);
+    res.setHeader("Content-Type", contentType);
+
+    if (!body) {
+      res.send();
+      return;
+    }
+
+    res.send(body);
+  } catch (error) {
+    console.error("Error proxying achievements request to backend:", error);
+    res.status(502).json({ error: "Falha ao consultar conquistas do jogo no backend." });
+  }
+}
+
 function createSteamState(): string {
   return crypto.randomBytes(24).toString("hex");
 }
@@ -193,6 +222,50 @@ function buildAppRedirect(status: string): string {
 function extractSteamIDFromClaimedID(claimedID: string): string {
   const match = claimedID.match(/^https?:\/\/steamcommunity\.com\/openid\/id\/(\d+)$/i);
   return match?.[1] ?? "";
+}
+
+function slugifyProfileName(rawName: string): string {
+  return rawName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function findUserByProfileName(
+  usersCollection: Collection<UserRecord>,
+  profileName: string
+): Promise<WithId<UserRecord> | null> {
+  const normalizedName = decodeURIComponent(profileName).trim();
+  if (!normalizedName) {
+    return null;
+  }
+
+  const exactMatchRegex = new RegExp(`^${escapeRegex(normalizedName)}$`, "i");
+  const exactUser = await usersCollection.findOne({ name: exactMatchRegex });
+  if (exactUser) {
+    return exactUser;
+  }
+
+  const targetSlug = slugifyProfileName(normalizedName);
+  if (!targetSlug) {
+    return null;
+  }
+
+  const users = await usersCollection.find({}).toArray();
+  for (const candidate of users) {
+    if (slugifyProfileName(candidate.name) === targetSlug) {
+      return candidate;
+    }
+  }
+
+  return null;
 }
 
 async function validateSteamOpenID(req: express.Request): Promise<boolean> {
@@ -278,12 +351,12 @@ async function startServer() {
   app.use(express.json());
 
   app.post("/api/auth/register", async (req, res) => {
-    const name = String(req.body?.name ?? "").trim();
+    const nickname = String(req.body?.nickname ?? req.body?.name ?? "").trim();
     const email = String(req.body?.email ?? "").trim().toLowerCase();
     const password = String(req.body?.password ?? "");
 
-    if (!name || !email || !password) {
-      res.status(400).json({ error: "Preencha nome, email e senha." });
+    if (!nickname || !email || !password) {
+      res.status(400).json({ error: "Preencha nickname, email e senha." });
       return;
     }
 
@@ -300,7 +373,7 @@ async function startServer() {
       }
 
       const newUser: UserRecord = {
-        name,
+        name: nickname,
         email,
         passwordHash: hashPassword(password),
         createdAt: new Date(),
@@ -524,9 +597,185 @@ async function startServer() {
     }
   });
 
+  app.get("/api/public/profile/:profileName", async (req, res) => {
+    const profileName = String(req.params?.profileName ?? "").trim();
+    if (!profileName) {
+      res.status(400).json({ error: "Informe um nome de perfil valido." });
+      return;
+    }
+
+    try {
+      const targetUser = await findUserByProfileName(usersCollection, profileName);
+      if (!targetUser) {
+        res.status(404).json({ error: "Perfil nao encontrado." });
+        return;
+      }
+
+      const steamID = targetUser.steam?.steamId?.trim() ?? "";
+      let profilePlatinums: unknown[] = [];
+
+      if (steamID) {
+        const platinumsResponse = await fetch(`${BACKEND_URL}/api/platinums`, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        if (!platinumsResponse.ok) {
+          const errorBody = await platinumsResponse.text();
+          const contentType = platinumsResponse.headers.get("content-type") ?? "application/json";
+          res.status(platinumsResponse.status);
+          res.setHeader("Content-Type", contentType);
+          res.send(errorBody);
+          return;
+        }
+
+        const payload = (await platinumsResponse.json()) as unknown;
+        if (Array.isArray(payload)) {
+          profilePlatinums = payload.filter((entry) => {
+            if (!entry || typeof entry !== "object") {
+              return false;
+            }
+
+            const metadata = (entry as { metadata?: { platform_user_id?: unknown } }).metadata;
+            const platformUserID =
+              typeof metadata?.platform_user_id === "string" ? metadata.platform_user_id.trim() : "";
+
+            return platformUserID === steamID;
+          });
+        }
+      }
+
+      const totalGames = profilePlatinums.length;
+      const totalPlatinums = profilePlatinums.filter((entry) => {
+        if (!entry || typeof entry !== "object") {
+          return false;
+        }
+
+        const platinumValue = (entry as { is_platinum?: unknown; isPlatinum?: unknown }).is_platinum ??
+          (entry as { is_platinum?: unknown; isPlatinum?: unknown }).isPlatinum;
+
+        if (typeof platinumValue === "boolean") {
+          return platinumValue;
+        }
+
+        if (typeof platinumValue === "number") {
+          return platinumValue === 1;
+        }
+
+        if (typeof platinumValue === "string") {
+          return platinumValue.toLowerCase() === "true" || platinumValue === "1";
+        }
+
+        return false;
+      }).length;
+
+      let lastSyncTime = targetUser.createdAt;
+      for (const entry of profilePlatinums) {
+        if (!entry || typeof entry !== "object") {
+          continue;
+        }
+
+        const record = entry as {
+          validation_date?: unknown;
+          date?: unknown;
+          metadata?: { validation_date?: unknown; date?: unknown };
+        };
+
+        const rawDate =
+          record.validation_date ??
+          record.date ??
+          record.metadata?.validation_date ??
+          record.metadata?.date;
+
+        if (typeof rawDate !== "string") {
+          continue;
+        }
+
+        const parsedDate = new Date(rawDate);
+        if (!Number.isNaN(parsedDate.getTime()) && parsedDate > lastSyncTime) {
+          lastSyncTime = parsedDate;
+        }
+      }
+
+      res.json({
+        profile: {
+          id: targetUser._id.toHexString(),
+          name: targetUser.name,
+          createdAt: targetUser.createdAt.toISOString(),
+        },
+        steamStatus: {
+          connected: Boolean(steamID),
+          steamId: steamID || null,
+          linkedAt: targetUser.steam?.linkedAt ? targetUser.steam.linkedAt.toISOString() : null,
+        },
+        stats: {
+          totalPlatinums,
+          totalGames,
+          lastSync: lastSyncTime.toISOString(),
+        },
+        platinums: profilePlatinums,
+      });
+    } catch (error) {
+      console.error("Public profile fetch failed:", error);
+      res.status(500).json({ error: "Nao foi possivel carregar este perfil agora." });
+    }
+  });
+
+  app.get("/api/public/profile/:profileName/games/:gameId/achievements", async (req, res) => {
+    const profileName = String(req.params?.profileName ?? "").trim();
+    const gameID = String(req.params?.gameId ?? "").trim();
+
+    if (!profileName) {
+      res.status(400).json({ error: "Informe um nome de perfil valido." });
+      return;
+    }
+
+    if (!gameID) {
+      res.status(400).json({ error: "Informe um jogo valido." });
+      return;
+    }
+
+    try {
+      const targetUser = await findUserByProfileName(usersCollection, profileName);
+      if (!targetUser) {
+        res.status(404).json({ error: "Perfil nao encontrado." });
+        return;
+      }
+
+      const steamID = targetUser.steam?.steamId?.trim();
+      if (!steamID) {
+        res.status(400).json({ error: "Este perfil ainda nao conectou a Steam." });
+        return;
+      }
+
+      await proxyBackendGameAchievements(steamID, gameID, res);
+    } catch (error) {
+      console.error("Public achievements fetch failed:", error);
+      res.status(500).json({ error: "Nao foi possivel carregar conquistas deste perfil." });
+    }
+  });
+
   // Dashboard data now comes from the Go backend (MongoDB), no local mocks.
   app.get("/api/platinums", authMiddleware, async (_req, res) => {
     await proxyBackendGet("/api/platinums", res);
+  });
+
+  app.get("/api/games/:gameId/achievements", authMiddleware, async (req: AuthedRequest, res) => {
+    const steamID = req.user?.steam?.steamId?.trim();
+    if (!steamID) {
+      res.status(400).json({ error: "Conecte sua conta Steam para ver conquistas deste jogo." });
+      return;
+    }
+
+    const gameID = String(req.params?.gameId ?? "").trim();
+    if (!gameID) {
+      res.status(400).json({ error: "Informe um jogo valido." });
+      return;
+    }
+
+    await proxyBackendGameAchievements(steamID, gameID, res);
   });
 
   app.get("/api/stats", authMiddleware, async (_req, res) => {

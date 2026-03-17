@@ -83,6 +83,25 @@ func main() {
 		})
 	})
 
+	mux.HandleFunc("GET /api/achievements/{userID}/{gameID}", func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("userID")
+		gameID := r.PathValue("gameID")
+
+		if userID == "" || gameID == "" {
+			http.Error(w, "userID e gameID sao obrigatorios", http.StatusBadRequest)
+			return
+		}
+
+		achievements, err := svc.GetGameAchievements(r.Context(), userID, gameID)
+		if err != nil {
+			http.Error(w, "Erro ao buscar conquistas do jogo", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(achievements)
+	})
+
 	mux.HandleFunc("POST /api/sync/{userID}", func(w http.ResponseWriter, r *http.Request) {
 		userID := r.PathValue("userID")
 		go func() {

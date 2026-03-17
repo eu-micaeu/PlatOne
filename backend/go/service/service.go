@@ -25,6 +25,7 @@ import (
 type PlatService interface {
 	SyncUserGames(ctx context.Context, userID string) error
 	VerifyPlatinum(ctx context.Context, userID, gameID string) (bool, error)
+	GetGameAchievements(ctx context.Context, userID, gameID string) ([]models.AchievementStatus, error)
 	UpsertPlatinum(ctx context.Context, plat *models.Platinum) error
 }
 
@@ -65,21 +66,32 @@ type steamSchemaResponse struct {
 	Game struct {
 		GameName           string `json:"gameName"`
 		AvailableGameStats struct {
-			Achievements []struct {
-				APIName string `json:"name"`
-			} `json:"achievements"`
+			Achievements []steamSchemaAchievement `json:"achievements"`
 		} `json:"availableGameStats"`
 	} `json:"game"`
 }
 
+type steamSchemaAchievement struct {
+	APIName     string `json:"name"`
+	DisplayName string `json:"displayName"`
+	Description string `json:"description"`
+	Icon        string `json:"icon"`
+	IconGray    string `json:"icongray"`
+	Hidden      int    `json:"hidden"`
+}
+
 type steamPlayerAchievementsResponse struct {
 	PlayerStats struct {
-		Success      bool   `json:"success"`
-		ErrorMessage string `json:"error"`
-		Achievements []struct {
-			Achieved int `json:"achieved"`
-		} `json:"achievements"`
+		Success      bool                     `json:"success"`
+		ErrorMessage string                   `json:"error"`
+		Achievements []steamPlayerAchievement `json:"achievements"`
 	} `json:"playerstats"`
+}
+
+type steamPlayerAchievement struct {
+	APIName    string `json:"apiname"`
+	Achieved   int    `json:"achieved"`
+	UnlockTime int64  `json:"unlocktime"`
 }
 
 // SyncUserGames sincroniza jogos Steam de um usuário e valida 100% de conquistas.
@@ -174,6 +186,77 @@ func (s *platService) VerifyPlatinum(ctx context.Context, userID, gameID string)
 	}
 
 	return plat.IsPlatinum, nil
+}
+
+func (s *platService) GetGameAchievements(ctx context.Context, userID, gameID string) ([]models.AchievementStatus, error) {
+	steamID := strings.TrimSpace(userID)
+	appID := strings.TrimSpace(gameID)
+
+	if steamID == "" || appID == "" {
+		return nil, errors.New("steamID e gameID são obrigatórios")
+	}
+
+	if s.steamAPIKey == "" {
+		return nil, errors.New("STEAM_API_KEY não configurada")
+	}
+
+	schema, err := s.fetchSteamSchema(ctx, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	playerData, err := s.fetchSteamPlayerAchievements(ctx, steamID, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	achievements := schema.Game.AvailableGameStats.Achievements
+	if len(achievements) == 0 {
+		return []models.AchievementStatus{}, nil
+	}
+
+	progressByName := make(map[string]steamPlayerAchievement, len(playerData.PlayerStats.Achievements))
+	for _, progress := range playerData.PlayerStats.Achievements {
+		if progress.APIName == "" {
+			continue
+		}
+		progressByName[progress.APIName] = progress
+	}
+
+	result := make([]models.AchievementStatus, 0, len(achievements))
+	for _, achievement := range achievements {
+		id := strings.TrimSpace(achievement.APIName)
+		if id == "" {
+			continue
+		}
+
+		progress := progressByName[id]
+		isAchieved := progress.Achieved == 1
+
+		var unlockTime *time.Time
+		if isAchieved && progress.UnlockTime > 0 {
+			parsed := time.Unix(progress.UnlockTime, 0).UTC()
+			unlockTime = &parsed
+		}
+
+		name := strings.TrimSpace(achievement.DisplayName)
+		if name == "" {
+			name = id
+		}
+
+		result = append(result, models.AchievementStatus{
+			ID:          id,
+			Name:        name,
+			Description: strings.TrimSpace(achievement.Description),
+			Icon:        strings.TrimSpace(achievement.Icon),
+			IconGray:    strings.TrimSpace(achievement.IconGray),
+			Hidden:      achievement.Hidden == 1,
+			Achieved:    isAchieved,
+			UnlockTime:  unlockTime,
+		})
+	}
+
+	return result, nil
 }
 
 func (s *platService) UpsertPlatinum(ctx context.Context, plat *models.Platinum) error {
@@ -321,6 +404,7 @@ func (s *platService) fetchSteamSchema(ctx context.Context, appID string) (*stea
 	params := url.Values{}
 	params.Set("key", s.steamAPIKey)
 	params.Set("appid", appID)
+	params.Set("l", "brazilian")
 
 	var payload steamSchemaResponse
 	if err := s.callSteamAPI(ctx, "https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2/", params, &payload); err != nil {
@@ -335,6 +419,7 @@ func (s *platService) fetchSteamPlayerAchievements(ctx context.Context, steamID,
 	params.Set("key", s.steamAPIKey)
 	params.Set("steamid", steamID)
 	params.Set("appid", appID)
+	params.Set("l", "brazilian")
 
 	var payload steamPlayerAchievementsResponse
 	if err := s.callSteamAPI(ctx, "https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/", params, &payload); err != nil {

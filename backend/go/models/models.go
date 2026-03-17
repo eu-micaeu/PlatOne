@@ -60,3 +60,15 @@ type Platinum struct {
 	ValidationDate time.Time              `bson:"validation_date" json:"validation_date"`
 	Metadata       map[string]interface{} `bson:"metadata,omitempty" json:"metadata,omitempty"`
 }
+
+// AchievementStatus representa o estado de uma conquista em um jogo específico.
+type AchievementStatus struct {
+	ID          string     `json:"id"`
+	Name        string     `json:"name"`
+	Description string     `json:"description,omitempty"`
+	Icon        string     `json:"icon,omitempty"`
+	IconGray    string     `json:"iconGray,omitempty"`
+	Hidden      bool       `json:"hidden"`
+	Achieved    bool       `json:"achieved"`
+	UnlockTime  *time.Time `json:"unlockTime,omitempty"`
+}
