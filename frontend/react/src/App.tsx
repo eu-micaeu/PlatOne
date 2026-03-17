@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type SyntheticEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { CheckCircle2, Clock3, LoaderCircle, LogOut, ShieldCheck, Trophy, X } from 'lucide-react';
+import { CheckCircle2, Clock3, LoaderCircle, LogOut, Trophy, X } from 'lucide-react';
 
+import BrandLogo from './components/BrandLogo';
 import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
@@ -761,9 +762,14 @@ export default function App() {
       <>
         <header className="sticky top-0 z-40 border-b border-black/10 bg-[var(--bg-main)]/75 backdrop-blur-xl">
           <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-            <div>
-              <p className="font-display text-xl leading-none tracking-tight">PlatOne</p>
-              <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-black/55">Perfil publico</p>
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl border border-black/10 bg-white/70 p-2 shadow-sm shadow-black/5">
+                <BrandLogo className="h-8 w-8" />
+              </div>
+              <div>
+                <p className="font-display text-xl leading-none tracking-tight">PlatOne</p>
+                <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-black/55">Perfil publico</p>
+              </div>
             </div>
             <button
               className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white"
@@ -815,7 +821,10 @@ export default function App() {
 
         <footer className="border-t border-black/10 bg-white/30">
           <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-4 text-[10px] uppercase tracking-[0.2em] text-black/50 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-            <span>PlatOne Control Layer | React + Go</span>
+            <span className="inline-flex items-center gap-2">
+              <BrandLogo className="h-4 w-4 opacity-70" />
+              <span>PlatOne Control Layer | React + Go</span>
+            </span>
             <span>Ultimo sync: {profileStats?.lastSync ? formatDateTime(profileStats.lastSync) : 'nunca'}</span>
           </div>
         </footer>
@@ -915,9 +924,14 @@ export default function App() {
     <>
       <header className="sticky top-0 z-40 border-b border-black/10 bg-[var(--bg-main)]/75 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ink-main)] text-[var(--bg-main)] shadow-lg shadow-black/20">
-              <ShieldCheck size={20} />
+          <button
+            type="button"
+            onClick={() => navigateTo('/home')}
+            className="flex items-center gap-3 rounded-2xl text-left transition-transform hover:-translate-y-0.5"
+            aria-label="Ir para a home"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ink-main)] shadow-lg shadow-black/20">
+              <BrandLogo variant="light" className="h-6 w-6" />
             </div>
             <div>
               <p className="font-display text-xl leading-none tracking-tight">PlatOne</p>
@@ -925,7 +939,7 @@ export default function App() {
                 Trophy Command Deck
               </p>
             </div>
-          </div>
+          </button>
 
           <div className="flex items-center gap-2 sm:gap-3">
             <span className="hidden rounded-full bg-black/6 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-black/65 sm:inline-flex">
@@ -1045,7 +1059,10 @@ export default function App() {
 
       <footer className="border-t border-black/10 bg-white/30">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-4 text-[10px] uppercase tracking-[0.2em] text-black/50 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <span>PlatOne Control Layer | React + Go</span>
+          <span className="inline-flex items-center gap-2">
+            <BrandLogo className="h-4 w-4 opacity-70" />
+            <span>PlatOne Control Layer | React + Go</span>
+          </span>
           <span>Ultimo sync: {profileStats?.lastSync ? formatDateTime(profileStats.lastSync) : 'nunca'}</span>
         </div>
       </footer>

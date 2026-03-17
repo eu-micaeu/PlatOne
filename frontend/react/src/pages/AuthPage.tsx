@@ -2,6 +2,7 @@ import { type FormEvent, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { Gamepad2, LoaderCircle, Lock, Mail, RefreshCw, ShieldCheck, User, UserPlus } from 'lucide-react';
 
+import BrandLogo from '../components/BrandLogo';
 import type { AuthMode } from '../types/app';
 
 type AuthPageProps = {
@@ -41,8 +42,8 @@ export default function AuthPage({
           className="glass-panel p-8"
         >
           <div className="mb-5 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--ink-main)] text-[var(--bg-main)]">
-              <ShieldCheck size={22} />
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--ink-main)] shadow-lg shadow-black/20">
+              <BrandLogo variant="light" className="h-8 w-8" />
             </div>
             <div>
               <p className="font-display text-3xl leading-none">PlatOne</p>
@@ -56,6 +57,18 @@ export default function AuthPage({
             Crie sua conta para acessar o dashboard de conquistas, manter sessao ativa e sincronizar o progresso
             em um fluxo seguro.
           </p>
+
+          <div className="mt-8 rounded-2xl border border-black/10 bg-white/60 p-4">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-[var(--bg-main)] p-2">
+                <BrandLogo className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-black/55">Identidade PlatOne</p>
+                <p className="mt-1 text-sm text-black/70">A mesma marca acompanha o login, o painel e a exibicao publica do perfil.</p>
+              </div>
+            </div>
+          </div>
 
         </motion.section>
 
