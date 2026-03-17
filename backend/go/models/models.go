@@ -8,11 +8,12 @@ import (
 
 // User representa o jogador e suas conexões
 type User struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Username  string             `bson:"username" json:"username"`
-	Email     string             `bson:"email" json:"email"`
-	Platforms PlatformAccounts   `bson:"platforms" json:"platforms"`
-	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
+	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Username    string             `bson:"username" json:"username"`
+	Email       string             `bson:"email" json:"email"`
+	Platforms   PlatformAccounts   `bson:"platforms" json:"platforms"`
+	SteamAPIKey string             `bson:"steam_api_key,omitempty" json:"steam_api_key,omitempty"`
+	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
 }
 
 type PlatformAccounts struct {

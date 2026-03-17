@@ -272,6 +272,54 @@ func main() {
 		})
 	})
 
+	// Steam API Key management endpoints
+	mux.HandleFunc("POST /api/users/{userID}/steam-api-key", func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("userID")
+		var req struct {
+			SteamAPIKey string `json:"steam_api_key"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Payload inválido", http.StatusBadRequest)
+			return
+		}
+
+		coll := db.Collection("users")
+		filter := bson.M{"_id": userID}
+		update := bson.M{"$set": bson.M{"steam_api_key": strings.TrimSpace(req.SteamAPIKey)}}
+		result, err := coll.UpdateOne(r.Context(), filter, update)
+		if err != nil {
+			http.Error(w, "Erro ao atualizar chave de API", http.StatusInternalServerError)
+			return
+		}
+		if result.MatchedCount == 0 {
+			http.Error(w, "Usuário não encontrado", http.StatusNotFound)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	mux.HandleFunc("GET /api/users/{userID}/steam-api-key", func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("userID")
+
+		coll := db.Collection("users")
+		var user models.User
+		filter := bson.M{"_id": userID}
+		if err := coll.FindOne(r.Context(), filter).Decode(&user); err != nil {
+			if err == mongo.ErrNoDocuments {
+				http.Error(w, "Usuário não encontrado", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "Erro ao buscar usuário", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"has_steam_api_key": user.SteamAPIKey != "",
+		})
+	})
+
 	port := strings.TrimSpace(os.Getenv("PORT"))
 	if port == "" {
 		port = "8080"

@@ -734,6 +734,26 @@ export default function App() {
     }
   };
 
+  const handleUpdateSteamAPIKey = async (apiKey: string) => {
+    if (!authToken || !user) {
+      throw new Error('Usuario nao autenticado');
+    }
+
+    const response = await fetch(`/api/users/${user.id}/steam-api-key`, {
+      method: 'POST',
+      headers: {
+        ...authHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ steam_api_key: apiKey }),
+    });
+
+    if (!response.ok) {
+      const message = await readErrorMessage(response, 'Nao foi possivel atualizar a chave de API.');
+      throw new Error(message);
+    }
+  };
+
   if (authChecking) {
     return (
       <div className="mx-auto flex w-full max-w-4xl flex-1 items-center justify-center px-4">
@@ -1038,6 +1058,7 @@ export default function App() {
             onConnectSteam={handleConnectSteam}
             onDisconnectSteam={handleDisconnectSteam}
             onDeleteAccount={handleDeleteAccount}
+            onUpdateSteamAPIKey={handleUpdateSteamAPIKey}
             formatDateTime={formatDateTime}
           />
         ) : isFriendsRoute ? (

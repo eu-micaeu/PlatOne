@@ -50,6 +50,27 @@ func NewPlatService(db *mongo.Database) PlatService {
 	}
 }
 
+// getSteamAPIKey retorna a chave de API do Steam do usuário, ou a chave global se o usuário não tiver configurado
+func (s *platService) getSteamAPIKey(ctx context.Context, userID string) (string, error) {
+	coll := s.db.Collection("users")
+	var user models.User
+	filter := bson.M{"_id": userID}
+	if err := coll.FindOne(ctx, filter).Decode(&user); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			// Usuário não encontrado, usa chave global
+			return s.steamAPIKey, nil
+		}
+		// Erro ao buscar usuário, tenta usar chave global
+		return s.steamAPIKey, nil
+	}
+
+	// Se o usuário tem uma chave, usa a dele; senão, usa a global
+	if user.SteamAPIKey != "" {
+		return user.SteamAPIKey, nil
+	}
+	return s.steamAPIKey, nil
+}
+
 type steamOwnedGamesResponse struct {
 	Response struct {
 		Games []steamOwnedGame `json:"games"`
@@ -100,13 +121,15 @@ func (s *platService) SyncUserGames(ctx context.Context, userID string) error {
 	if steamID == "" {
 		return errors.New("steamID não informado")
 	}
-	if s.steamAPIKey == "" {
+
+	apiKey, err := s.getSteamAPIKey(ctx, steamID)
+	if err != nil || apiKey == "" {
 		return errors.New("STEAM_API_KEY não configurada")
 	}
 
 	fmt.Printf("[SyncUserGames] Starting sync for steamID='%s' (len=%d)\n", steamID, len(steamID))
 
-	games, err := s.fetchOwnedSteamGames(ctx, steamID)
+	games, err := s.fetchOwnedSteamGames(ctx, steamID, apiKey)
 	if err != nil {
 		return fmt.Errorf("erro ao buscar biblioteca Steam: %w", err)
 	}
@@ -138,7 +161,7 @@ func (s *platService) SyncUserGames(ctx context.Context, userID string) error {
 			}
 			defer func() { <-sem }()
 
-			if err := s.syncSteamGame(ctx, steamID, game); err != nil {
+			if err := s.syncSteamGame(ctx, steamID, game, apiKey); err != nil {
 				errChan <- err
 				return
 			}
@@ -198,16 +221,17 @@ func (s *platService) GetGameAchievements(ctx context.Context, userID, gameID st
 		return nil, errors.New("steamID e gameID são obrigatórios")
 	}
 
-	if s.steamAPIKey == "" {
+	apiKey, err := s.getSteamAPIKey(ctx, steamID)
+	if err != nil || apiKey == "" {
 		return nil, errors.New("STEAM_API_KEY não configurada")
 	}
 
-	schema, err := s.fetchSteamSchema(ctx, appID)
+	schema, err := s.fetchSteamSchema(ctx, appID, apiKey)
 	if err != nil {
 		return nil, err
 	}
 
-	playerData, err := s.fetchSteamPlayerAchievements(ctx, steamID, appID)
+	playerData, err := s.fetchSteamPlayerAchievements(ctx, steamID, appID, apiKey)
 	if err != nil {
 		return nil, err
 	}
@@ -329,10 +353,10 @@ func buildPlatinumFilter(plat *models.Platinum) bson.M {
 	return bson.M{"_id": primitive.NewObjectID()}
 }
 
-func (s *platService) syncSteamGame(ctx context.Context, steamID string, game steamOwnedGame) error {
+func (s *platService) syncSteamGame(ctx context.Context, steamID string, game steamOwnedGame, apiKey string) error {
 	appID := strconv.Itoa(game.AppID)
 
-	schema, err := s.fetchSteamSchema(ctx, appID)
+	schema, err := s.fetchSteamSchema(ctx, appID, apiKey)
 	if err != nil {
 		return err
 	}
@@ -342,7 +366,7 @@ func (s *platService) syncSteamGame(ctx context.Context, steamID string, game st
 		return nil
 	}
 
-	playerData, err := s.fetchSteamPlayerAchievements(ctx, steamID, appID)
+	playerData, err := s.fetchSteamPlayerAchievements(ctx, steamID, appID, apiKey)
 	if err != nil {
 		return err
 	}
@@ -389,9 +413,9 @@ func (s *platService) syncSteamGame(ctx context.Context, steamID string, game st
 	return s.UpsertPlatinum(ctx, plat)
 }
 
-func (s *platService) fetchOwnedSteamGames(ctx context.Context, steamID string) ([]steamOwnedGame, error) {
+func (s *platService) fetchOwnedSteamGames(ctx context.Context, steamID string, apiKey string) ([]steamOwnedGame, error) {
 	params := url.Values{}
-	params.Set("key", s.steamAPIKey)
+	params.Set("key", apiKey)
 	params.Set("steamid", steamID)
 	params.Set("include_appinfo", "true")
 	params.Set("include_played_free_games", "true")
@@ -404,9 +428,9 @@ func (s *platService) fetchOwnedSteamGames(ctx context.Context, steamID string) 
 	return payload.Response.Games, nil
 }
 
-func (s *platService) fetchSteamSchema(ctx context.Context, appID string) (*steamSchemaResponse, error) {
+func (s *platService) fetchSteamSchema(ctx context.Context, appID string, apiKey string) (*steamSchemaResponse, error) {
 	params := url.Values{}
-	params.Set("key", s.steamAPIKey)
+	params.Set("key", apiKey)
 	params.Set("appid", appID)
 	params.Set("l", "brazilian")
 
@@ -418,9 +442,9 @@ func (s *platService) fetchSteamSchema(ctx context.Context, appID string) (*stea
 	return &payload, nil
 }
 
-func (s *platService) fetchSteamPlayerAchievements(ctx context.Context, steamID, appID string) (*steamPlayerAchievementsResponse, error) {
+func (s *platService) fetchSteamPlayerAchievements(ctx context.Context, steamID, appID string, apiKey string) (*steamPlayerAchievementsResponse, error) {
 	params := url.Values{}
-	params.Set("key", s.steamAPIKey)
+	params.Set("key", apiKey)
 	params.Set("steamid", steamID)
 	params.Set("appid", appID)
 	params.Set("l", "brazilian")
