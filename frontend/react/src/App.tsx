@@ -457,9 +457,6 @@ export default function App() {
     [profilePlatinums]
   );
 
-  const completionRate =
-    totalAchievements > 0 ? Math.round((unlockedAchievements / totalAchievements) * 100) : 0;
-
   const monthlyPlatinums = useMemo(() => {
     const now = new Date();
     return profilePlatinums.filter((game) => {
@@ -801,7 +798,6 @@ export default function App() {
               loadingData={profileLoadingData}
               steamError={profileSteamError}
               stats={profileStats}
-              completionRate={completionRate}
               recentProfileGames={recentProfileGames}
               almostPlatinumGames={almostPlatinumGames}
               progressGames={progressGames}
@@ -1012,7 +1008,6 @@ export default function App() {
             loadingData={profileLoadingData}
             steamError={profileSteamError}
             stats={profileStats}
-            completionRate={completionRate}
             recentProfileGames={recentProfileGames}
             almostPlatinumGames={almostPlatinumGames}
             progressGames={progressGames}

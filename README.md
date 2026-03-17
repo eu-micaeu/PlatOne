@@ -1,72 +1,92 @@
 # PlatOne
 
-Projeto com frontend React/Vite e backend Go.
+Plataforma para acompanhar progresso de conquistas em jogos, com foco em visibilidade de evolucao, sincronizacao com Steam e compartilhamento de perfil publico.
 
-## Integracao Steam (OpenID + Sync)
+## O que e o PlatOne
 
-Para sincronizar conquistas Steam por usuario:
+O PlatOne organiza a jornada de conquistas de cada jogador em um unico painel:
 
-1. Defina a chave da Steam Web API no ambiente do backend:
+- Visao consolidada de jogos, progresso e platinas.
+- Timeline de atividades recentes por jogo.
+- Detalhamento de conquistas desbloqueadas e pendentes.
+- Perfil publico para compartilhar desempenho com outras pessoas.
 
-   ```bash
-   export STEAM_API_KEY="sua_chave"
-   ```
+Em vez de um tracker estatico, o objetivo e oferecer uma camada de identidade gamer com dados sincronizados da plataforma conectada.
 
-2. Suba os servicos com Docker Compose.
+## Principais recursos
 
-3. No app logado, use os endpoints:
+### Conta e sessao
 
-   - `POST /api/steam/connect` inicia o fluxo OpenID e retorna URL de login Steam.
-   - `GET /api/steam/callback` recebe o retorno da Steam e vincula o `steamId` ao usuario.
-   - `GET /api/steam/status` mostra se o usuario atual esta com Steam conectada.
-   - `POST /api/steam/disconnect` remove o vinculo Steam.
-   - `POST /api/sync/me` sincroniza conquistas usando o `steamId` vinculado.
+- Cadastro e login com sessao por token.
+- Sessao persistente para retorno rapido ao dashboard.
+- Area de configuracoes para gerenciamento da conta.
 
-Observacoes:
+### Integracao Steam
 
-- O backend Go continua expondo `POST /api/sync/{userID}` e agora espera um SteamID64.
-- Se o perfil/conquistas da Steam estiverem privados, a API pode nao retornar dados.
+- Conexao de conta via fluxo OpenID.
+- Vinculo de SteamID ao usuario autenticado.
+- Sincronizacao das conquistas para atualizacao de estatisticas e status dos jogos.
 
-## Estrutura
+### Dashboard de progresso
 
-- `frontend/`: aplicação React + Vite + servidor Node de desenvolvimento (`server.ts`)
-- `backend/`: código Go
-- `deployments/docker-compose.yml`: ambiente Docker Compose para desenvolvimento
+- Cards de estatisticas (platinas, total de jogos, recorte mensal).
+- Filtros por status e plataforma.
+- Visualizacao em grade ou lista.
+- Abertura de detalhes por jogo com progresso de conquistas.
 
-## Desenvolvimento com Docker (hot reload)
+### Perfil publico
 
-Pré-requisito: Docker + Docker Compose.
+- Pagina publica por nome de perfil.
+- Exibicao de estatisticas e biblioteca sincronizada.
+- Consulta publica das conquistas de um jogo desse perfil.
 
-1. Suba o ambiente:
+## Como a plataforma funciona
 
-   ```bash
-   docker compose -f deployments/docker-compose.yml up --build
-   ```
+1. O usuario cria conta e autentica no PlatOne.
+2. O usuario conecta a conta Steam pelo fluxo OpenID.
+3. O sistema armazena o SteamID vinculado ao usuario.
+4. Uma sincronizacao consulta biblioteca e conquistas na Steam.
+5. O backend calcula progresso e status de platina por jogo.
+6. O frontend apresenta os dados no dashboard e no perfil publico.
 
-2. Acesse no navegador:
+## Arquitetura da plataforma
 
-   ```
-   http://localhost:3000
-   ```
+- Frontend React/Vite: experiencia de uso, dashboard, perfil, autenticacao e configuracoes.
+- Servidor Node (BFF): autentica usuarios, gerencia sessoes e orquestra chamadas para o backend Go.
+- Backend Go: integra com Steam Web API, processa conquistas e persiste dados consolidados.
+- MongoDB: armazenamento de usuarios, sessoes, estados OpenID e registros de progresso.
 
-As alterações em arquivos dentro de `frontend/` são refletidas automaticamente (modo desenvolvedor).
+## Endpoints de produto (visao funcional)
 
-## Desenvolvimento sem Docker
+### Identidade e conta
 
-1. Entre na pasta do frontend:
+- `POST /api/auth/register`: cria conta.
+- `POST /api/auth/login`: inicia sessao.
+- `GET /api/auth/me`: retorna usuario autenticado.
+- `POST /api/auth/logout`: encerra sessao.
+- `DELETE /api/auth/account`: remove conta do usuario.
 
-   ```bash
-   cd frontend
-   ```
+### Steam
 
-2. Instale as dependências:
+- `POST /api/steam/connect`: inicia conexao OpenID.
+- `GET /api/steam/callback`: finaliza vinculo Steam apos retorno da Steam.
+- `GET /api/steam/status`: informa estado de conexao da Steam.
+- `POST /api/steam/disconnect`: remove o vinculo Steam.
+- `POST /api/sync/me`: sincroniza conquistas do usuario conectado.
 
-   ```bash
-   npm install
-   ```
+### Dados de progresso
 
-3. Rode em modo dev:
+- `GET /api/platinums`: lista jogos sincronizados e progresso.
+- `GET /api/stats`: retorna metricas gerais.
+- `GET /api/games/:gameId/achievements`: detalha conquistas do jogo do usuario autenticado.
 
-   ```bash
-   npm run dev
-   ```
+### Perfil publico
+
+- `GET /api/public/profile/:profileName`: perfil, stats e biblioteca publica.
+- `GET /api/public/profile/:profileName/games/:gameId/achievements`: conquistas de jogo no perfil publico.
+
+## Escopo atual
+
+- Fonte principal de sincronizacao: Steam.
+- Estrutura pensada para expansao futura para outras plataformas (ex.: Xbox e PSN).
+- Se perfil/conquistas da Steam estiverem privados, a API pode nao retornar dados suficientes para sincronizacao completa.

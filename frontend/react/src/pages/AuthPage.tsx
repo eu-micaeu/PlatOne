@@ -52,22 +52,11 @@ export default function AuthPage({
             </div>
           </div>
 
-          <h1 className="font-display text-4xl leading-tight sm:text-5xl">
-            Login e registro
-            <span className="text-[var(--brand-gold)]"> prontos para uso</span>
-          </h1>
-
           <p className="mt-4 text-sm text-black/70 sm:text-base">
             Crie sua conta para acessar o dashboard de conquistas, manter sessao ativa e sincronizar o progresso
             em um fluxo seguro.
           </p>
 
-          <div className="mt-8 grid grid-cols-2 gap-3">
-            <FeaturePill icon={<UserPlus size={14} />} text="Registro rapido" />
-            <FeaturePill icon={<Lock size={14} />} text="Sessao por token" />
-            <FeaturePill icon={<RefreshCw size={14} />} text="Login persistente" />
-            <FeaturePill icon={<Gamepad2 size={14} />} text="Dashboard protegido" />
-          </div>
         </motion.section>
 
         <motion.section
@@ -182,20 +171,9 @@ export default function AuthPage({
             </button>
           </form>
 
-          <p className="mt-5 rounded-xl border border-black/10 bg-black/[0.03] p-3 font-mono text-[11px] leading-relaxed text-black/60">
-            Contas criadas aqui liberam acesso ao dashboard e consulta no backend conectado ao MongoDB.
-          </p>
         </motion.section>
       </div>
     </main>
   );
 }
 
-function FeaturePill({ icon, text }: { icon: ReactNode; text: string }) {
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/60 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-black/65">
-      {icon}
-      <span>{text}</span>
-    </div>
-  );
-}

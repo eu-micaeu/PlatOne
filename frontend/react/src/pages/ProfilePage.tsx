@@ -12,7 +12,6 @@ type ProfilePageProps = {
   loadingData: boolean;
   steamError: string | null;
   stats: Stats | null;
-  completionRate: number;
   recentProfileGames: Platinum[];
   almostPlatinumGames: Platinum[];
   progressGames: number;
@@ -34,7 +33,6 @@ export default function ProfilePage({
   loadingData,
   steamError,
   stats,
-  completionRate,
   recentProfileGames,
   almostPlatinumGames,
   progressGames,
@@ -104,7 +102,6 @@ export default function ProfilePage({
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <ProfileMetric icon={<Trophy size={14} />} label="Platinas" value={stats?.totalPlatinums ?? 0} />
             <ProfileMetric icon={<Gamepad2 size={14} />} label="Jogos" value={stats?.totalGames ?? 0} />
-            <ProfileMetric icon={<TrendingUp size={14} />} label="Conclusao" value={`${completionRate}%`} />
           </div>
         </div>
       </motion.section>
