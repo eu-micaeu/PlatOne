@@ -27,11 +27,6 @@ type AuthFeature = {
 
 const AUTH_FEATURES: AuthFeature[] = [
   {
-    icon: ShieldCheck,
-    label: 'Sessao protegida',
-    description: 'Login com token e validacao continua no backend.',
-  },
-  {
     icon: Gamepad2,
     label: 'Foco em progresso',
     description: 'Conquistas, feed e ranking no mesmo painel.',
@@ -60,10 +55,6 @@ export default function AuthPage({
 
   return (
     <main className="auth-login-stage relative mx-auto flex w-full max-w-7xl flex-1 min-h-[100dvh] items-stretch px-3 py-3 sm:px-5 sm:py-5 lg:px-8 lg:py-8">
-      <div aria-hidden className="auth-glow auth-glow-cyan" />
-      <div aria-hidden className="auth-glow auth-glow-gold" />
-      <div aria-hidden className="auth-grain-layer" />
-
       <div className="relative z-10 grid w-full flex-1 gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-stretch lg:gap-6">
         <motion.section
           initial={{ opacity: 0, y: 20 }}
@@ -119,25 +110,6 @@ export default function AuthPage({
             })}
           </div>
 
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            <span className="auth-stat-chip">Token session</span>
-            <span className="auth-stat-chip">Steam sync ready</span>
-            <span className="auth-stat-chip">Realtime dashboard</span>
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-black/10 bg-white/55 p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-[var(--ink-main)] p-2 text-white">
-                <ArrowUpRight size={14} />
-              </div>
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-black/55">Fluxo unico</p>
-                <p className="mt-1 text-sm text-black/70">
-                  A mesma identidade acompanha login, painel principal e perfil publico.
-                </p>
-              </div>
-            </div>
-          </div>
         </motion.section>
 
         <motion.section

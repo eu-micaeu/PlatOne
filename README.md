@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="./frontend/react/public/Logo - Branca.svg" alt="PlatOne Logo" width="120" />
+</div>
+
 # PlatOne
 
 Plataforma para acompanhar progresso de conquistas em jogos, com foco em visibilidade de evolucao, sincronizacao com Steam e compartilhamento de perfil publico.
