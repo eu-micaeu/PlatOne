@@ -37,6 +37,190 @@
   border-radius: 20px;
 }
 
+.auth-login-stage {
+  isolation: isolate;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.auth-login-stage::before {
+  content: '';
+  position: absolute;
+  inset: -24px;
+  z-index: -3;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(63, 169, 201, 0.2), transparent 34%),
+    radial-gradient(circle at 88% 16%, rgba(241, 195, 74, 0.18), transparent 36%),
+    radial-gradient(circle at 60% 92%, rgba(214, 128, 106, 0.15), transparent 44%);
+}
+
+.auth-login-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  border-radius: 28px;
+  background-image:
+    linear-gradient(rgba(31, 34, 38, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 34, 38, 0.035) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), transparent 86%);
+}
+
+.auth-glow {
+  position: absolute;
+  z-index: -1;
+  border-radius: 999px;
+  filter: blur(65px);
+  pointer-events: none;
+  opacity: 0.72;
+}
+
+.auth-glow-cyan {
+  top: 7%;
+  left: -4%;
+  width: 220px;
+  height: 220px;
+  background: rgba(63, 169, 201, 0.3);
+}
+
+.auth-glow-gold {
+  right: 3%;
+  bottom: 8%;
+  width: 240px;
+  height: 240px;
+  background: rgba(241, 195, 74, 0.28);
+}
+
+.auth-grain-layer {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.2) 0%, transparent 45%),
+    radial-gradient(circle at 80% 90%, rgba(255, 255, 255, 0.16) 0%, transparent 42%);
+}
+
+.auth-hero-panel {
+  position: relative;
+  border: 1px solid rgba(31, 34, 38, 0.14);
+  border-radius: 28px;
+  background: linear-gradient(142deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.63));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.5) inset,
+    0 26px 54px rgba(31, 34, 38, 0.11);
+  backdrop-filter: blur(8px);
+}
+
+.auth-hero-panel::after {
+  content: '';
+  position: absolute;
+  right: -20%;
+  bottom: -34%;
+  width: 360px;
+  height: 260px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(63, 169, 201, 0.18), transparent 66%);
+  pointer-events: none;
+}
+
+.auth-form-panel {
+  border: 1px solid rgba(31, 34, 38, 0.15);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.55) inset,
+    0 18px 42px rgba(31, 34, 38, 0.09);
+}
+
+.auth-mobile-hero {
+  border: 1px solid rgba(31, 34, 38, 0.14);
+  border-radius: 22px;
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.66));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.52) inset,
+    0 16px 36px rgba(31, 34, 38, 0.1);
+  padding: 18px;
+}
+
+.auth-mobile-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(31, 34, 38, 0.11);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
+  min-height: 34px;
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  text-align: center;
+  color: rgba(31, 34, 38, 0.66);
+}
+
+.auth-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(31, 34, 38, 0.11);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: rgba(31, 34, 38, 0.64);
+}
+
+@media (max-width: 1023px) {
+  .auth-login-stage {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .auth-login-stage::before {
+    inset: -10px;
+  }
+
+  .auth-login-stage::after {
+    border-radius: 22px;
+    background-size: 28px 28px;
+  }
+
+  .auth-glow {
+    filter: blur(52px);
+    opacity: 0.58;
+  }
+
+  .auth-glow-cyan,
+  .auth-glow-gold {
+    width: 170px;
+    height: 170px;
+  }
+
+  .auth-hero-panel::after {
+    width: 240px;
+    height: 210px;
+    right: -26%;
+    bottom: -30%;
+  }
+
+  .auth-form-panel {
+    border-radius: 22px;
+  }
+}
+
+@media (max-width: 640px) {
+  .auth-mobile-hero {
+    padding: 16px;
+  }
+
+  .auth-mobile-chip {
+    font-size: 9px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -12,6 +12,7 @@ type ProfilePageProps = {
   loadingData: boolean;
   steamError: string | null;
   stats: Stats | null;
+  profilePlatinums: Platinum[];
   recentProfileGames: Platinum[];
   almostPlatinumGames: Platinum[];
   progressGames: number;
@@ -33,6 +34,7 @@ export default function ProfilePage({
   loadingData,
   steamError,
   stats,
+  profilePlatinums,
   recentProfileGames,
   almostPlatinumGames,
   progressGames,
@@ -45,6 +47,10 @@ export default function ProfilePage({
   formatDateTime,
   isReadOnly = false,
 }: ProfilePageProps) {
+  const platinumGames = [...profilePlatinums]
+    .filter((game) => game.isPlatinum)
+    .sort((a, b) => getGameActivityTimestamp(b) - getGameActivityTimestamp(a));
+
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
 
@@ -64,6 +70,9 @@ export default function ProfilePage({
               <div className="min-w-0">
                 <p className="font-display text-3xl leading-tight text-black/90 sm:text-4xl">{user?.name}</p>
                 <p className="truncate font-mono text-[11px] uppercase tracking-[0.2em] text-black/55">@{(user?.name ?? 'platone').toLowerCase().replace(/\s+/g, '.')}</p>
+                <p className="mt-2 inline-flex rounded-full bg-black/7 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-black/65">
+                  {platinumGames.length} platinas registradas
+                </p>
               </div>
             </div>
 
@@ -100,154 +109,140 @@ export default function ProfilePage({
           )}
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <ProfileMetric icon={<Trophy size={14} />} label="Platinas" value={stats?.totalPlatinums ?? 0} />
+            <ProfileMetric icon={<Trophy size={14} />} label="Platinas" value={platinumGames.length} />
             <ProfileMetric icon={<Gamepad2 size={14} />} label="Jogos" value={stats?.totalGames ?? 0} />
           </div>
         </div>
       </motion.section>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+
+      <div className="space-y-6">
+
         <motion.section
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.04 }}
-          className="glass-panel p-5 sm:p-6"
+          transition={{ duration: 0.35, delay: 0.16 }}
+          className="glass-panel p-5"
         >
-          <div className="mb-5 flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="font-display text-3xl leading-tight">Feed de progresso</p>
-              <p className="text-sm text-black/65">Estilo timeline: seus jogos mais recentes e o quanto falta para o 100%.</p>
+              <p className="font-display text-2xl leading-tight">Colecao de platinas</p>
+              <p className="mt-2 text-sm text-black/65">
+                {isReadOnly
+                  ? 'Estas sao as platinas visiveis deste perfil.'
+                  : 'Estas sao suas platinas exibidas publicamente.'}
+              </p>
             </div>
-            <span className="rounded-full bg-black/7 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-black/60">
-              {recentProfileGames.length} atualizacoes
+            <span className="rounded-full bg-emerald-500/12 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-emerald-700">
+              {platinumGames.length} total
             </span>
           </div>
 
-          <div className="space-y-3">
-            {recentProfileGames.length > 0 ? (
-              recentProfileGames.map((game) => {
-                const completion = game.total > 0 ? Math.round((game.unlocked / game.total) * 100) : 0;
-
-                return (
-                  <button
-                    key={`profile-feed-${game.id}`}
-                    type="button"
-                    onClick={() => onOpenGameDetails(game)}
-                    className="w-full rounded-2xl border border-black/10 bg-white/70 p-3 text-left transition-all hover:-translate-y-0.5 hover:bg-white"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="h-16 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-zinc-200">
-                        <img
-                          src={game.icon}
-                          alt={game.title}
-                          className="h-full w-full object-cover"
-                          data-backup-src={game.backupIcon ?? ''}
-                          data-fallback-src={game.fallbackIcon}
-                          onError={handleGameImageError}
-                          loading="lazy"
-                          decoding="async"
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="truncate text-sm font-semibold text-black/85">{game.title}</p>
-                            <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.13em] text-black/50">
-                              {game.platform} | {game.unlocked}/{game.total} conquistas
-                            </p>
-                          </div>
-                          <span
-                            className={`rounded-full px-2 py-1 font-mono text-[9px] uppercase tracking-[0.13em] ${
-                              game.isPlatinum ? 'bg-emerald-500/12 text-emerald-700' : 'bg-amber-500/12 text-amber-700'
-                            }`}
-                          >
-                            {game.isPlatinum ? 'Platinado' : `${completion}%`}
-                          </span>
-                        </div>
-
-                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/10">
-                          <div
-                            className={`h-full ${
-                              game.isPlatinum
-                                ? 'bg-gradient-to-r from-emerald-400 to-emerald-600'
-                                : 'bg-gradient-to-r from-[var(--ink-main)] to-black/65'
-                            }`}
-                            style={{ width: `${completion}%` }}
-                          />
-                        </div>
-
-                        <p className="mt-2 text-xs text-black/60">
-                          {game.date
-                            ? `Atualizado em ${formatDateTime(game.date)}`
-                            : `Em progresso: faltam ${Math.max(game.total - game.unlocked, 0)} conquistas`}
-                        </p>
-                      </div>
+          <div className="mt-4 max-h-[320px] space-y-2 overflow-y-auto pr-1">
+            {platinumGames.length > 0 ? (
+              platinumGames.map((game) => (
+                <button
+                  key={`platinum-${game.id}`}
+                  type="button"
+                  onClick={() => onOpenGameDetails(game)}
+                  className="w-full rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-left transition-all hover:bg-white"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-zinc-200">
+                      <img
+                        src={game.icon}
+                        alt={game.title}
+                        className="h-full w-full object-cover"
+                        data-backup-src={game.backupIcon ?? ''}
+                        data-fallback-src={game.fallbackIcon}
+                        onError={handleGameImageError}
+                        loading="lazy"
+                        decoding="async"
+                        referrerPolicy="no-referrer"
+                      />
                     </div>
-                  </button>
-                );
-              })
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-black/85">{game.title}</p>
+                      <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-black/55">
+                        {game.platform}
+                        {game.date ? ` | ${formatDateTime(game.date)}` : ''}
+                      </p>
+                    </div>
+
+                    <span className="rounded-full bg-emerald-500/12 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-emerald-700">
+                      Platinado
+                    </span>
+                  </div>
+                </button>
+              ))
             ) : (
-              <p className="rounded-xl border border-black/10 bg-white/55 px-3 py-3 text-sm text-black/65">
-                {isReadOnly
-                  ? 'Sem atividades publicas para este perfil no momento.'
-                  : 'Sem atividades ainda. Conecte a Steam e rode uma sincronizacao para preencher sua timeline.'}
+              <p className="rounded-xl border border-black/10 bg-white/55 px-3 py-2 text-sm text-black/60">
+                {isReadOnly ? 'Este perfil ainda nao possui platinas publicas.' : 'Voce ainda nao possui jogos platinados.'}
               </p>
             )}
           </div>
         </motion.section>
 
-        <div className="space-y-6">
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.12 }}
+          className="glass-panel p-5"
+        >
+          <p className="font-display text-2xl leading-tight">Quase lá</p>
+          <p className="mt-2 text-sm text-black/65">Jogos em progresso que estao mais perto da platina.</p>
 
-          <motion.section
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.12 }}
-            className="glass-panel p-5"
-          >
-            <p className="font-display text-2xl leading-tight">Quase lá</p>
-            <p className="mt-2 text-sm text-black/65">Jogos em progresso que estao mais perto da platina.</p>
-
-            <div className="mt-4 space-y-2">
-              {almostPlatinumGames.length > 0 ? (
-                almostPlatinumGames.map((game) => {
-                  const completion = game.total > 0 ? Math.round((game.unlocked / game.total) * 100) : 0;
-                  return (
-                    <button
-                      key={`almost-${game.id}`}
-                      type="button"
-                      onClick={() => onOpenGameDetails(game)}
-                      className="w-full rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-left transition-all hover:bg-white"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="truncate text-sm font-semibold text-black/85">{game.title}</p>
-                        <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-black/55">{completion}%</span>
-                      </div>
-                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/10">
-                        <div className="h-full bg-gradient-to-r from-[var(--brand-gold)] to-[var(--ink-main)]" style={{ width: `${completion}%` }} />
-                      </div>
-                    </button>
-                  );
-                })
-              ) : (
-                <p className="rounded-xl border border-black/10 bg-white/55 px-3 py-2 text-sm text-black/60">
-                  Ainda sem jogos em progresso suficientes para ranking.
-                </p>
-              )}
-            </div>
-
-            <div className="mt-4 rounded-xl border border-black/10 bg-white/60 p-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-black/55">Resumo rapido</p>
-              <p className="mt-1 text-sm text-black/70">
-                {stats?.totalPlatinums ?? 0} jogos platinados, {progressGames} em andamento e {monthlyPlatinums} finalizados neste mes.
+          <div className="mt-4 space-y-2">
+            {almostPlatinumGames.length > 0 ? (
+              almostPlatinumGames.map((game) => {
+                const completion = game.total > 0 ? Math.round((game.unlocked / game.total) * 100) : 0;
+                return (
+                  <button
+                    key={`almost-${game.id}`}
+                    type="button"
+                    onClick={() => onOpenGameDetails(game)}
+                    className="w-full rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-left transition-all hover:bg-white"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-semibold text-black/85">{game.title}</p>
+                      <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-black/55">{completion}%</span>
+                    </div>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/10">
+                      <div className="h-full bg-gradient-to-r from-[var(--brand-gold)] to-[var(--ink-main)]" style={{ width: `${completion}%` }} />
+                    </div>
+                  </button>
+                );
+              })
+            ) : (
+              <p className="rounded-xl border border-black/10 bg-white/55 px-3 py-2 text-sm text-black/60">
+                Ainda sem jogos em progresso suficientes para ranking.
               </p>
-            </div>
-          </motion.section>
-        </div>
+            )}
+          </div>
+
+          <div className="mt-4 rounded-xl border border-black/10 bg-white/60 p-3">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-black/55">Resumo rapido</p>
+            <p className="mt-1 text-sm text-black/70">
+              {stats?.totalPlatinums ?? 0} jogos platinados, {progressGames} em andamento e {monthlyPlatinums} finalizados neste mes.
+            </p>
+          </div>
+        </motion.section>
+
       </div>
+
+
     </div>
   );
+}
+
+function getGameActivityTimestamp(game: Platinum): number {
+  if (!game.date) {
+    return 0;
+  }
+
+  const timestamp = new Date(game.date).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
 function ProfileMetric({

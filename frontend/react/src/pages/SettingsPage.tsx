@@ -104,6 +104,33 @@ export default function SettingsPage({
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: 0.05 }}
+        className="rounded-2xl border-2 border-blue-500 bg-blue-50/80 p-5 sm:p-6 shadow-lg shadow-blue-500/20"
+      >
+        <div className="flex items-start gap-3">
+          <div className="rounded-lg bg-blue-600/15 p-2.5">
+            <ShieldCheck size={20} className="text-blue-700" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display text-2xl leading-tight text-blue-950">Seu perfil PRECISA estar PUBLICO na Steam!</p>
+            <div className="mt-3 space-y-2 rounded-lg border border-blue-300/60 bg-white/70 p-3">
+              <p className="text-sm font-semibold text-blue-900">
+                ⚠️ Configuracao obrigatoria na Steam:
+              </p>
+              <p className="text-sm text-blue-800">
+                Acesse sua conta Steam, vá para <span className="font-mono bg-blue-100 px-1.5 py-0.5 rounded">Perfil</span> → <span className="font-mono bg-blue-100 px-1.5 py-0.5 rounded">Editar Perfil</span> e altere a visibilidade para <span className="font-semibold">PUBLICO</span>.
+              </p>
+            </div>
+            <p className="mt-3 text-sm text-blue-900">
+              Sem seu perfil estar <span className="font-bold text-blue-950">PUBLICO NA STEAM</span>, o PlatOne nao conseguira sincronizar suas platinas, jogos e conquistas.
+            </p>
+          </div>
+        </div>
+      </motion.section>
+
+      <motion.section
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.1 }}
         className="glass-panel p-6 sm:p-8"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -167,78 +194,6 @@ export default function SettingsPage({
             </button>
           )}
         </div>
-      </motion.section>
-
-      <motion.section
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: 0.075 }}
-        className="glass-panel p-6 sm:p-8"
-      >
-        <div className="flex items-center gap-2">
-          <Key size={24} />
-          <p className="font-display text-3xl leading-tight">Chave de API Steam</p>
-        </div>
-        <p className="mt-2 text-sm text-black/70">
-          Configure sua própria chave de API da Steam para sincronizar seus dados em vez de usar a chave global.
-        </p>
-
-        <form onSubmit={handleUpdateSteamAPIKey} className="mt-4 space-y-4">
-          <div>
-            <label htmlFor="steamAPIKey" className="font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">
-              Chave de API Steam
-            </label>
-            <input
-              id="steamAPIKey"
-              type="password"
-              value={steamAPIKey}
-              onChange={(e) => setSteamAPIKey(e.target.value)}
-              placeholder="Cole sua chave de API aqui"
-              className="mt-2 w-full rounded-xl border border-black/10 bg-white/70 px-4 py-2.5 font-mono text-sm text-black/75 placeholder-black/30 transition-all focus:border-black/20 focus:bg-white focus:outline-none"
-            />
-            <p className="mt-2 text-xs text-black/55">
-              Obtenha em:{' '}
-              <a
-                href="https://steamcommunity.com/dev/apikey"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline"
-              >
-                steamcommunity.com/dev/apikey
-              </a>
-            </p>
-          </div>
-
-          {steamAPIKeyError && (
-            <p className="rounded-lg border border-red-300/70 bg-red-100/70 px-3 py-2 text-sm text-red-800">
-              {steamAPIKeyError}
-            </p>
-          )}
-
-          {steamAPIKeySuccess && (
-            <p className="rounded-lg border border-emerald-300/70 bg-emerald-100/70 px-3 py-2 text-sm text-emerald-800">
-              Chave de API atualizada com sucesso!
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={steamAPIKeyLoading || !steamAPIKey.trim()}
-            className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {steamAPIKeyLoading ? (
-              <>
-                <LoaderCircle size={14} className="animate-spin" />
-                Atualizando...
-              </>
-            ) : (
-              <>
-                <Key size={14} />
-                Atualizar Chave
-              </>
-            )}
-          </button>
-        </form>
       </motion.section>
 
       <motion.section

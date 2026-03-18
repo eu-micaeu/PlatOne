@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type SyntheticEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { CheckCircle2, Clock3, LoaderCircle, LogOut, Trophy, X, Users, MessageSquare } from 'lucide-react';
+import { CheckCircle2, Clock3, LoaderCircle, Trophy, X } from 'lucide-react';
 
 import BrandLogo from './components/BrandLogo';
 import AppFooter from './components/AppFooter';
-import MessageNotification from './components/MessageNotification';
+import AppTopBar from './components/AppTopBar';
 import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
@@ -754,6 +754,18 @@ export default function App() {
     }
   };
 
+  const activeTopBarPath = isHomeRoute
+    ? '/home'
+    : isOwnProfileRoute
+      ? '/profile'
+      : isFriendsRoute
+        ? '/friends'
+        : isMessagesRoute
+          ? '/messages'
+          : isSettingsRoute
+            ? '/settings'
+            : null;
+
   if (authChecking) {
     return (
       <div className="mx-auto flex w-full max-w-4xl flex-1 items-center justify-center px-4">
@@ -832,6 +844,7 @@ export default function App() {
               loadingData={profileLoadingData}
               steamError={profileSteamError}
               stats={profileStats}
+              profilePlatinums={profilePlatinums}
               recentProfileGames={recentProfileGames}
               almostPlatinumGames={almostPlatinumGames}
               progressGames={progressGames}
@@ -942,103 +955,13 @@ export default function App() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-black/10 bg-[var(--bg-main)]/75 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <button
-            type="button"
-            onClick={() => navigateTo('/home')}
-            className="flex items-center gap-3 rounded-2xl text-left transition-transform hover:-translate-y-0.5"
-            aria-label="Ir para a home"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ink-main)] shadow-lg shadow-black/20">
-              <BrandLogo variant="light" className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="font-display text-xl leading-none tracking-tight">PlatOne</p>
-              <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-black/55">
-                Trophy Command Deck
-              </p>
-            </div>
-          </button>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            <span className="hidden rounded-full bg-black/6 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-black/65 sm:inline-flex">
-              {user?.name}
-            </span>
-            <MessageNotification currentUserId={user?.id} />
-            <button
-              className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
-                isHomeRoute
-                  ? 'border-transparent bg-[var(--ink-main)] text-white'
-                  : 'border-black/10 bg-white/65 text-black/75 hover:bg-white'
-              }`}
-              type="button"
-              onClick={() => navigateTo('/home')}
-              disabled={isHomeRoute}
-            >
-              Home
-            </button>
-            <button
-              className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
-                isOwnProfileRoute
-                  ? 'border-transparent bg-[var(--ink-main)] text-white'
-                  : 'border-black/10 bg-white/65 text-black/75 hover:bg-white'
-              }`}
-              type="button"
-              onClick={() => navigateTo('/profile')}
-              disabled={isOwnProfileRoute}
-            >
-              Perfil
-            </button>
-            <button
-              className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
-                isFriendsRoute
-                  ? 'border-transparent bg-[var(--ink-main)] text-white'
-                  : 'border-black/10 bg-white/65 text-black/75 hover:bg-white'
-              }`}
-              type="button"
-              onClick={() => navigateTo('/friends')}
-              disabled={isFriendsRoute}
-            >
-              <Users size={14} />
-              Amigos
-            </button>
-            <button
-              className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
-                isMessagesRoute
-                  ? 'border-transparent bg-[var(--ink-main)] text-white'
-                  : 'border-black/10 bg-white/65 text-black/75 hover:bg-white'
-              }`}
-              type="button"
-              onClick={() => navigateTo('/messages')}
-              disabled={isMessagesRoute}
-            >
-              <MessageSquare size={14} />
-              Mensagens
-            </button>
-            <button
-              className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
-                isSettingsRoute
-                  ? 'border-transparent bg-[var(--ink-main)] text-white'
-                  : 'border-black/10 bg-white/65 text-black/75 hover:bg-white'
-              }`}
-              type="button"
-              onClick={() => navigateTo('/settings')}
-              disabled={isSettingsRoute}
-            >
-              Configuracoes
-            </button>
-            <button
-              className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white"
-              type="button"
-              onClick={handleLogout}
-            >
-              <LogOut size={14} />
-              Sair
-            </button>
-          </div>
-        </div>
-      </header>
+      <AppTopBar
+        userName={user?.name}
+        currentUserId={user?.id}
+        activePath={activeTopBarPath}
+        onNavigate={(path) => navigateTo(path)}
+        onLogout={handleLogout}
+      />
 
       <main
         className={`mx-auto w-full max-w-7xl flex-1 px-4 pt-8 sm:px-6 lg:px-8 ${
@@ -1083,6 +1006,7 @@ export default function App() {
             loadingData={profileLoadingData}
             steamError={profileSteamError}
             stats={profileStats}
+            profilePlatinums={profilePlatinums}
             recentProfileGames={recentProfileGames}
             almostPlatinumGames={almostPlatinumGames}
             progressGames={progressGames}
