@@ -37,6 +37,20 @@
   line-height: 1;
 }
 
+:root[data-theme='dark'] .message-notification {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fecaca;
+}
+
+:root[data-theme='dark'] .notification-icon {
+  color: #fecaca;
+}
+
+:root[data-theme='dark'] .notification-badge {
+  background: rgba(239, 68, 68, 0.8);
+}
+
 @keyframes slideDown {
   from {
     opacity: 0;

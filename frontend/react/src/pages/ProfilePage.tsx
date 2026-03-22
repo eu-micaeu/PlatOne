@@ -58,7 +58,7 @@ export default function ProfilePage({
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className="overflow-hidden rounded-[30px] border border-black/10 bg-gradient-to-br from-white/85 to-white/60 shadow-2xl shadow-black/10 ring-1 ring-white/45"
+        className="glass-panel overflow-hidden rounded-[30px]"
       >
 
         <div className="px-6 pb-6 pt-5 sm:px-10 sm:pt-6">

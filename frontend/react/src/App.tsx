@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type SyntheticEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { CheckCircle2, Clock3, LoaderCircle, Trophy, X } from 'lucide-react';
+import { CheckCircle2, Clock3, LoaderCircle, Moon, Sun, Trophy, X } from 'lucide-react';
 
 import BrandLogo from './components/BrandLogo';
 import AppFooter from './components/AppFooter';
@@ -26,6 +26,7 @@ import type {
 const TOKEN_STORAGE_KEY = 'platone.auth.token';
 const MESSAGE_FRIEND_ID_STORAGE_KEY = 'platone.messages.friendId';
 const MESSAGE_FRIEND_NAME_STORAGE_KEY = 'platone.messages.friendName';
+const THEME_STORAGE_KEY = 'platone.theme.mode';
 
 const DEFAULT_STEAM_STATUS: SteamStatus = {
   connected: false,
@@ -34,11 +35,13 @@ const DEFAULT_STEAM_STATUS: SteamStatus = {
 };
 
 type AppRoute = '/home' | '/login' | '/register' | '/profile' | '/settings' | '/friends' | '/messages' | `/profile/${string}`;
+type ThemeMode = 'light' | 'dark';
 
 export default function App() {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [routePath, setRoutePath] = useState<AppRoute>(() => getNormalizedPath());
   const [authToken, setAuthToken] = useState<string | null>(() => getStoredToken());
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => getStoredTheme());
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
   const [authSubmitting, setAuthSubmitting] = useState(false);
@@ -129,6 +132,10 @@ export default function App() {
     } else {
       localStorage.removeItem(TOKEN_STORAGE_KEY);
     }
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setThemeMode((currentTheme) => (currentTheme === 'light' ? 'dark' : 'light'));
   }, []);
 
   const closeAchievementsModal = useCallback(() => {
@@ -329,6 +336,15 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    document.documentElement.setAttribute('data-theme', themeMode);
+    localStorage.setItem(THEME_STORAGE_KEY, themeMode);
+  }, [themeMode]);
 
   useEffect(() => {
     if (!isLoginRoute && !isRegisterRoute) {
@@ -793,6 +809,8 @@ export default function App() {
         onPasswordChange={setPasswordInput}
         onModeChange={handleModeChange}
         onSubmit={handleAuthSubmit}
+        themeMode={themeMode}
+        onToggleTheme={toggleTheme}
       />
     );
   }
@@ -804,20 +822,32 @@ export default function App() {
           <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-3">
               <div className="rounded-2xl border border-black/10 bg-white/70 p-2 shadow-sm shadow-black/5">
-                <BrandLogo className="h-8 w-8" />
+                <BrandLogo variant={themeMode === 'dark' ? 'light' : 'dark'} className="h-8 w-8" />
               </div>
               <div>
                 <p className="font-display text-xl leading-none tracking-tight">PlatOne</p>
                 <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-black/55">Perfil publico</p>
               </div>
             </div>
-            <button
-              className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white"
-              type="button"
-              onClick={() => navigateTo('/login')}
-            >
-              Entrar
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 bg-white/65 text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white"
+                type="button"
+                onClick={toggleTheme}
+                aria-label={themeMode === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
+                title={themeMode === 'dark' ? 'Tema claro' : 'Tema escuro'}
+              >
+                {themeMode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+
+              <button
+                className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white"
+                type="button"
+                onClick={() => navigateTo('/login')}
+              >
+                Entrar
+              </button>
+            </div>
           </div>
         </header>
 
@@ -961,6 +991,8 @@ export default function App() {
         activePath={activeTopBarPath}
         onNavigate={(path) => navigateTo(path)}
         onLogout={handleLogout}
+        themeMode={themeMode}
+        onToggleTheme={toggleTheme}
       />
 
       <main
@@ -1263,6 +1295,19 @@ function getStoredToken(): string | null {
     return null;
   }
   return localStorage.getItem(TOKEN_STORAGE_KEY);
+}
+
+function getStoredTheme(): ThemeMode {
+  if (typeof window === 'undefined') {
+    return 'light';
+  }
+
+  const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+  if (storedTheme === 'light' || storedTheme === 'dark') {
+    return storedTheme;
+  }
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 async function readErrorMessage(

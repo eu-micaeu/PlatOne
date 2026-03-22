@@ -1,4 +1,4 @@
-import { House, LogOut, MessageSquare, Settings2, type LucideIcon, UserRound, Users } from 'lucide-react';
+import { House, LogOut, MessageSquare, Moon, Settings2, Sun, type LucideIcon, UserRound, Users } from 'lucide-react';
 
 import BrandLogo from './BrandLogo';
 import MessageNotification from './MessageNotification';
@@ -11,6 +11,8 @@ type AppTopBarProps = {
   activePath: AppTopBarPath | null;
   onNavigate: (path: AppTopBarPath) => void;
   onLogout: () => void;
+  themeMode: 'light' | 'dark';
+  onToggleTheme: () => void;
 };
 
 type NavItem = {
@@ -27,7 +29,15 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/settings', label: 'Configuracoes', icon: Settings2 },
 ];
 
-export default function AppTopBar({ userName, currentUserId, activePath, onNavigate, onLogout }: AppTopBarProps) {
+export default function AppTopBar({
+  userName,
+  currentUserId,
+  activePath,
+  onNavigate,
+  onLogout,
+  themeMode,
+  onToggleTheme,
+}: AppTopBarProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-black/10 bg-[var(--bg-main)]/75 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
@@ -50,6 +60,17 @@ export default function AppTopBar({ userName, currentUserId, activePath, onNavig
           <span className="hidden rounded-full bg-black/6 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-black/65 sm:inline-flex">
             {userName}
           </span>
+
+          <button
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 bg-white/65 text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white"
+            type="button"
+            onClick={onToggleTheme}
+            aria-label={themeMode === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
+            title={themeMode === 'dark' ? 'Tema claro' : 'Tema escuro'}
+          >
+            {themeMode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            <span className="sr-only">Alternar tema</span>
+          </button>
 
           <MessageNotification currentUserId={currentUserId} />
 

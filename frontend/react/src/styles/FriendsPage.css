@@ -324,6 +324,109 @@
   font-size: 1rem;
 }
 
+:root[data-theme='dark'] .friends-page {
+  background: linear-gradient(135deg, #0d121a 0%, #161f2d 100%);
+}
+
+:root[data-theme='dark'] .friends-header h1,
+:root[data-theme='dark'] .friend-name,
+:root[data-theme='dark'] .request-info h4,
+:root[data-theme='dark'] .add-friends-container h2,
+:root[data-theme='dark'] .tab-button:hover,
+:root[data-theme='dark'] .tab-button.active {
+  color: #e6ecf8;
+}
+
+:root[data-theme='dark'] .stat-number,
+:root[data-theme='dark'] .stat-label,
+:root[data-theme='dark'] .friend-email,
+:root[data-theme='dark'] .request-info p,
+:root[data-theme='dark'] .info-text,
+:root[data-theme='dark'] .loading,
+:root[data-theme='dark'] .empty-state,
+:root[data-theme='dark'] .tab-button {
+  color: rgba(230, 236, 248, 0.74);
+}
+
+:root[data-theme='dark'] .friends-tabs {
+  border-bottom-color: rgba(230, 236, 248, 0.15);
+}
+
+:root[data-theme='dark'] .friends-content {
+  background: rgba(18, 25, 36, 0.82);
+  border: 1px solid rgba(230, 236, 248, 0.15);
+  box-shadow: 0 14px 30px rgba(0, 4, 12, 0.35);
+}
+
+:root[data-theme='dark'] .friend-card,
+:root[data-theme='dark'] .request-item {
+  background: rgba(20, 28, 40, 0.9);
+  border-color: rgba(230, 236, 248, 0.15);
+}
+
+:root[data-theme='dark'] .friend-card:hover,
+:root[data-theme='dark'] .request-item:hover {
+  background: rgba(23, 33, 46, 0.95);
+  border-color: rgba(230, 236, 248, 0.25);
+}
+
+:root[data-theme='dark'] .request-date {
+  color: rgba(230, 236, 248, 0.58);
+}
+
+:root[data-theme='dark'] .search-input {
+  background: rgba(13, 19, 29, 0.72);
+  border-color: rgba(230, 236, 248, 0.2);
+  color: #e6ecf8;
+}
+
+:root[data-theme='dark'] .search-input::placeholder {
+  color: rgba(230, 236, 248, 0.48);
+}
+
+:root[data-theme='dark'] .search-input:focus {
+  border-color: rgba(99, 198, 228, 0.85);
+  box-shadow: 0 0 0 3px rgba(99, 198, 228, 0.22);
+}
+
+:root[data-theme='dark'] .btn-primary {
+  background: #1f2b3c;
+}
+
+:root[data-theme='dark'] .btn-primary:hover {
+  background: #27374d;
+}
+
+:root[data-theme='dark'] .btn-danger {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fda4a4;
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+:root[data-theme='dark'] .btn-danger:hover {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+:root[data-theme='dark'] .btn-success {
+  background: #1f8b4a;
+}
+
+:root[data-theme='dark'] .btn-success:hover {
+  background: #26a55a;
+}
+
+:root[data-theme='dark'] .alert-error {
+  background-color: rgba(239, 68, 68, 0.18);
+  border-color: rgba(248, 113, 113, 0.42);
+  color: #fecaca;
+}
+
+:root[data-theme='dark'] .alert-success {
+  background-color: rgba(34, 197, 94, 0.16);
+  border-color: rgba(74, 222, 128, 0.42);
+  color: #bbf7d0;
+}
+
 @media (max-width: 768px) {
   .friends-page {
     padding: 1rem;

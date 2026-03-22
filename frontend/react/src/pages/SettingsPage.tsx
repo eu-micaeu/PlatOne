@@ -104,24 +104,24 @@ export default function SettingsPage({
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: 0.05 }}
-        className="rounded-2xl border-2 border-blue-500 bg-blue-50/80 p-5 sm:p-6 shadow-lg shadow-blue-500/20"
+        className="rounded-2xl border-2 border-[color:color-mix(in_oklab,var(--brand-cyan)_50%,var(--surface-border))] bg-[color:color-mix(in_oklab,var(--surface-soft)_78%,var(--brand-cyan)_22%)] p-5 sm:p-6 shadow-lg shadow-[color:color-mix(in_oklab,var(--brand-cyan)_35%,transparent)]"
       >
         <div className="flex items-start gap-3">
-          <div className="rounded-lg bg-blue-600/15 p-2.5">
-            <ShieldCheck size={20} className="text-blue-700" />
+          <div className="rounded-lg bg-[color:color-mix(in_oklab,var(--brand-cyan)_24%,transparent)] p-2.5">
+            <ShieldCheck size={20} className="text-[color:color-mix(in_oklab,var(--brand-cyan)_72%,var(--text-main))]" />
           </div>
           <div className="flex-1">
-            <p className="font-display text-2xl leading-tight text-blue-950">Seu perfil PRECISA estar PUBLICO na Steam!</p>
-            <div className="mt-3 space-y-2 rounded-lg border border-blue-300/60 bg-white/70 p-3">
-              <p className="text-sm font-semibold text-blue-900">
+            <p className="font-display text-2xl leading-tight text-[color:color-mix(in_oklab,var(--text-main)_84%,var(--brand-cyan))]">Seu perfil PRECISA estar PUBLICO na Steam!</p>
+            <div className="mt-3 space-y-2 rounded-lg border border-[color:color-mix(in_oklab,var(--brand-cyan)_42%,var(--surface-border))] bg-[color:color-mix(in_oklab,var(--surface-soft)_86%,var(--brand-cyan)_14%)] p-3">
+              <p className="text-sm font-semibold text-[color:color-mix(in_oklab,var(--text-main)_76%,var(--brand-cyan))]">
                 ⚠️ Configuracao obrigatoria na Steam:
               </p>
-              <p className="text-sm text-blue-800">
-                Acesse sua conta Steam, vá para <span className="font-mono bg-blue-100 px-1.5 py-0.5 rounded">Perfil</span> → <span className="font-mono bg-blue-100 px-1.5 py-0.5 rounded">Editar Perfil</span> e altere a visibilidade para <span className="font-semibold">PUBLICO</span>.
+              <p className="text-sm text-[color:color-mix(in_oklab,var(--text-main)_70%,var(--brand-cyan))]">
+                Acesse sua conta Steam, vá para <span className="rounded bg-[color:color-mix(in_oklab,var(--brand-cyan)_20%,var(--surface-soft))] px-1.5 py-0.5 font-mono">Perfil</span> → <span className="rounded bg-[color:color-mix(in_oklab,var(--brand-cyan)_20%,var(--surface-soft))] px-1.5 py-0.5 font-mono">Editar Perfil</span> e altere a visibilidade para <span className="font-semibold">PUBLICO</span>.
               </p>
             </div>
-            <p className="mt-3 text-sm text-blue-900">
-              Sem seu perfil estar <span className="font-bold text-blue-950">PUBLICO NA STEAM</span>, o PlatOne nao conseguira sincronizar suas platinas, jogos e conquistas.
+            <p className="mt-3 text-sm text-[color:color-mix(in_oklab,var(--text-main)_76%,var(--brand-cyan))]">
+              Sem seu perfil estar <span className="font-bold text-[color:color-mix(in_oklab,var(--text-main)_86%,var(--brand-cyan))]">PUBLICO NA STEAM</span>, o PlatOne nao conseguira sincronizar suas platinas, jogos e conquistas.
             </p>
           </div>
         </div>

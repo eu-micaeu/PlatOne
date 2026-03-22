@@ -1,6 +1,6 @@
 import { type FormEvent } from 'react';
 import { motion } from 'motion/react';
-import { type LucideIcon, ArrowUpRight, Gamepad2, LoaderCircle, Lock, Mail, ShieldCheck, User, UserPlus } from 'lucide-react';
+import { type LucideIcon, ArrowUpRight, Gamepad2, LoaderCircle, Lock, Mail, Moon, ShieldCheck, Sun, User, UserPlus } from 'lucide-react';
 
 import BrandLogo from '../components/BrandLogo';
 import type { AuthMode } from '../types/app';
@@ -17,6 +17,8 @@ type AuthPageProps = {
   onPasswordChange: (value: string) => void;
   onModeChange: (mode: AuthMode) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  themeMode: 'light' | 'dark';
+  onToggleTheme: () => void;
 };
 
 type AuthFeature = {
@@ -50,11 +52,13 @@ export default function AuthPage({
   onPasswordChange,
   onModeChange,
   onSubmit,
+  themeMode,
+  onToggleTheme,
 }: AuthPageProps) {
   const isLogin = authMode === 'login';
 
   return (
-    <main className="auth-login-stage relative mx-auto flex w-full max-w-7xl flex-1 min-h-[100dvh] items-stretch px-3 py-3 sm:px-5 sm:py-5 lg:px-8 lg:py-8">
+    <main className=" relative mx-auto flex w-full max-w-7xl flex-1 min-h-[100dvh] items-stretch sm:px-5 sm:py-5 lg:px-8 lg:py-8">
       <div className="relative z-10 grid w-full flex-1 gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-stretch lg:gap-6">
         <motion.section
           initial={{ opacity: 0, y: 20 }}
@@ -147,6 +151,19 @@ export default function AuthPage({
           transition={{ duration: 0.45, delay: 0.06 }}
           className="auth-form-panel glass-panel mx-auto flex h-full w-full max-w-lg flex-col p-5 sm:p-7 lg:max-w-none lg:p-8"
         >
+          <div className="mb-4 flex justify-end">
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-black/65 transition-all hover:-translate-y-0.5 hover:bg-white"
+              aria-label={themeMode === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
+              title={themeMode === 'dark' ? 'Tema claro' : 'Tema escuro'}
+            >
+              {themeMode === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
+              <span>{themeMode === 'dark' ? 'Claro' : 'Escuro'}</span>
+            </button>
+          </div>
+
           <div className="mb-5 inline-flex w-full rounded-full border border-black/10 bg-white/65 p-1">
             <button
               type="button"
