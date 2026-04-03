@@ -33,11 +33,6 @@ const AUTH_FEATURES: AuthFeature[] = [
     label: 'Foco em progresso',
     description: 'Conquistas, feed e ranking no mesmo painel.',
   },
-  {
-    icon: UserPlus,
-    label: 'Cadastro rapido',
-    description: 'Crie conta e começe a organizar platinas em segundos.',
-  },
 ];
 
 export default function AuthPage({
@@ -84,7 +79,7 @@ export default function AuthPage({
               Organize seu legado de conquistas.
             </h1>
             <p className="mt-4 text-sm text-black/70 sm:text-base">
-              Entre para visualizar feed de progresso, ranking de jogos e sincronizacao com Steam em um fluxo seguro.
+              Entre para visualizar feed de progresso, ranking de jogos e sincronização com Steam em um fluxo seguro.
             </p>
           </div>
 
@@ -134,7 +129,7 @@ export default function AuthPage({
 
           <h1 className="mt-4 font-display text-3xl leading-tight text-black/90">Entre e continue sua jornada.</h1>
           <p className="mt-2 text-sm text-black/70">
-            Painel de conquistas, feed e sincronizacao Steam pronto para caber bem em qualquer tela.
+            Painel de conquistas, feed e sincronização Steam pronto para caber bem em qualquer tela.
           </p>
 
           <div className="mt-4 grid grid-cols-2 gap-2">
@@ -295,9 +290,6 @@ export default function AuthPage({
               )}
             </button>
 
-            <p className="text-center font-mono text-[10px] uppercase tracking-[0.14em] text-black/45">
-              {isLogin ? 'Acesso seguro com sessao validada' : 'Conta criada com autenticacao imediata'}
-            </p>
           </form>
         </motion.section>
       </div>

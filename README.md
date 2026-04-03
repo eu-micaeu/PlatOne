@@ -4,7 +4,7 @@
 
 # PlatOne
 
-Plataforma para acompanhar progresso de conquistas em jogos, com foco em visibilidade de evolucao, sincronizacao com Steam e compartilhamento de perfil publico.
+Plataforma para acompanhar progresso de conquistas em jogos, com foco em visibilidade de evolucao, sincronização com Steam e compartilhamento de perfil publico.
 
 ## O que e o PlatOne
 
@@ -29,7 +29,7 @@ Em vez de um tracker estatico, o objetivo e oferecer uma camada de identidade ga
 
 - Conexao de conta via fluxo OpenID.
 - Vinculo de SteamID ao usuario autenticado.
-- Sincronizacao das conquistas para atualizacao de estatisticas e status dos jogos.
+- Sincronização das conquistas para atualizacao de estatisticas e status dos jogos.
 
 ### Dashboard de progresso
 
@@ -49,7 +49,7 @@ Em vez de um tracker estatico, o objetivo e oferecer uma camada de identidade ga
 1. O usuario cria conta e autentica no PlatOne.
 2. O usuario conecta a conta Steam pelo fluxo OpenID.
 3. O sistema armazena o SteamID vinculado ao usuario.
-4. Uma sincronizacao consulta biblioteca e conquistas na Steam.
+4. Uma sincronização consulta biblioteca e conquistas na Steam.
 5. O backend calcula progresso e status de platina por jogo.
 6. O frontend apresenta os dados no dashboard e no perfil publico.
 
@@ -93,7 +93,7 @@ Em vez de um tracker estatico, o objetivo e oferecer uma camada de identidade ga
 
 - Fonte principal de sincronizacao: Steam.
 - Estrutura pensada para expansao futura para outras plataformas (ex.: Xbox e PSN).
-- Se perfil/conquistas da Steam estiverem privados, a API pode nao retornar dados suficientes para sincronizacao completa.
+- Se perfil/conquistas da Steam estiverem privados, a API pode nao retornar dados suficientes para sincronização completa.
 
 ## Docker Compose
 
