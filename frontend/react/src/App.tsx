@@ -9,8 +9,6 @@ import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
-import FriendsPage from './pages/FriendsPage';
-import MessagesPage from './pages/MessagesPage';
 import type {
   Achievement,
   AuthMode,
@@ -24,8 +22,6 @@ import type {
 } from './types/app';
 
 const TOKEN_STORAGE_KEY = 'platone.auth.token';
-const MESSAGE_FRIEND_ID_STORAGE_KEY = 'platone.messages.friendId';
-const MESSAGE_FRIEND_NAME_STORAGE_KEY = 'platone.messages.friendName';
 const THEME_STORAGE_KEY = 'platone.theme.mode';
 
 const DEFAULT_STEAM_STATUS: SteamStatus = {
@@ -34,7 +30,7 @@ const DEFAULT_STEAM_STATUS: SteamStatus = {
   linkedAt: null,
 };
 
-type AppRoute = '/home' | '/login' | '/register' | '/profile' | '/settings' | '/friends' | '/messages' | `/profile/${string}`;
+type AppRoute = '/home' | '/login' | '/register' | '/profile' | '/settings' | `/profile/${string}`;
 type ThemeMode = 'light' | 'dark';
 
 export default function App() {
@@ -90,8 +86,6 @@ export default function App() {
   const isOwnProfileRoute = routePath === '/profile';
   const isProfileRoute = isOwnProfileRoute || isPublicProfileRoute;
   const isSettingsRoute = routePath === '/settings';
-  const isFriendsRoute = routePath === '/friends';
-  const isMessagesRoute = routePath === '/messages';
   const isLoginRoute = routePath === '/login';
   const isRegisterRoute = routePath === '/register';
   const isPublicRoute = isLoginRoute || isRegisterRoute || isPublicProfileRoute;
@@ -774,13 +768,9 @@ export default function App() {
     ? '/home'
     : isOwnProfileRoute
       ? '/profile'
-      : isFriendsRoute
-        ? '/friends'
-        : isMessagesRoute
-          ? '/messages'
-          : isSettingsRoute
-            ? '/settings'
-            : null;
+      : isSettingsRoute
+        ? '/settings'
+        : null;
 
   if (authChecking) {
     return (
@@ -987,7 +977,6 @@ export default function App() {
     <>
       <AppTopBar
         userName={user?.name}
-        currentUserId={user?.id}
         activePath={activeTopBarPath}
         onNavigate={(path) => navigateTo(path)}
         onLogout={handleLogout}
@@ -997,7 +986,7 @@ export default function App() {
 
       <main
         className={`mx-auto w-full max-w-7xl flex-1 px-4 pt-8 sm:px-6 lg:px-8 ${
-          isProfileRoute || isSettingsRoute || isFriendsRoute || isMessagesRoute ? 'pb-2 lg:pt-8' : 'pb-10 lg:pt-10'
+          isProfileRoute || isSettingsRoute ? 'pb-2 lg:pt-8' : 'pb-10 lg:pt-10'
         }`}
       >
         {isSettingsRoute ? (
@@ -1016,19 +1005,6 @@ export default function App() {
             onUpdateSteamAPIKey={handleUpdateSteamAPIKey}
             formatDateTime={formatDateTime}
           />
-        ) : isFriendsRoute ? (
-          <FriendsPage
-            currentUserId={user?.id}
-            onSendMessage={(friendId, friendName) => {
-              if (typeof window !== 'undefined') {
-                sessionStorage.setItem(MESSAGE_FRIEND_ID_STORAGE_KEY, friendId);
-                sessionStorage.setItem(MESSAGE_FRIEND_NAME_STORAGE_KEY, friendName);
-              }
-              navigateTo('/messages');
-            }}
-          />
-        ) : isMessagesRoute ? (
-          <MessagesPage currentUserId={user?.id} />
         ) : isProfileRoute ? (
           <ProfilePage
             user={profileUser}
@@ -1252,14 +1228,6 @@ function normalizePath(pathname: string): AppRoute {
 
   if (pathname === '/settings') {
     return '/settings';
-  }
-
-  if (pathname === '/friends') {
-    return '/friends';
-  }
-
-  if (pathname === '/messages') {
-    return '/messages';
   }
 
   return '/home';

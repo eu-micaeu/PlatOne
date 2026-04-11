@@ -1,13 +1,11 @@
-import { House, LogOut, MessageSquare, Moon, Settings2, Sun, type LucideIcon, UserRound, Users } from 'lucide-react';
+import { House, LogOut, Moon, Settings2, Sun, type LucideIcon, UserRound } from 'lucide-react';
 
 import BrandLogo from './BrandLogo';
-import MessageNotification from './MessageNotification';
 
-export type AppTopBarPath = '/home' | '/profile' | '/friends' | '/messages' | '/settings';
+export type AppTopBarPath = '/home' | '/profile' | '/settings';
 
 type AppTopBarProps = {
   userName?: string;
-  currentUserId?: string;
   activePath: AppTopBarPath | null;
   onNavigate: (path: AppTopBarPath) => void;
   onLogout: () => void;
@@ -24,14 +22,11 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { path: '/home', label: 'Home', icon: House },
   { path: '/profile', label: 'Perfil', icon: UserRound },
-  { path: '/friends', label: 'Amigos', icon: Users },
-  { path: '/messages', label: 'Mensagens', icon: MessageSquare },
   { path: '/settings', label: 'Configuracoes', icon: Settings2 },
 ];
 
 export default function AppTopBar({
   userName,
-  currentUserId,
   activePath,
   onNavigate,
   onLogout,
@@ -71,8 +66,6 @@ export default function AppTopBar({
             {themeMode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
             <span className="sr-only">Alternar tema</span>
           </button>
-
-          <MessageNotification currentUserId={currentUserId} />
 
           <nav className="flex items-center gap-2" aria-label="Navegacao principal">
             {NAV_ITEMS.map((item) => {

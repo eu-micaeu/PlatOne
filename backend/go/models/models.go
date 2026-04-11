@@ -73,33 +73,3 @@ type AchievementStatus struct {
 	Achieved    bool       `json:"achieved"`
 	UnlockTime  *time.Time `json:"unlockTime,omitempty"`
 }
-
-// FriendRequest representa um pedido de amizade
-type FriendRequest struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	FromID    primitive.ObjectID `bson:"from_id" json:"from_id"`
-	ToID      primitive.ObjectID `bson:"to_id" json:"to_id"`
-	Status    string             `bson:"status" json:"status"` // pending, accepted, rejected
-	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
-	UpdatedAt time.Time          `bson:"updated_at" json:"updated_at"`
-	FromUser  *User              `bson:"-" json:"from_user,omitempty"`
-	ToUser    *User              `bson:"-" json:"to_user,omitempty"`
-}
-
-// Friendship representa uma amizade entre dois usuários
-type Friendship struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	UserID1   primitive.ObjectID `bson:"user_id_1" json:"user_id_1"`
-	UserID2   primitive.ObjectID `bson:"user_id_2" json:"user_id_2"`
-	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
-}
-
-// Message representa uma mensagem entre dois usuários
-type Message struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	FromID    primitive.ObjectID `bson:"from_id" json:"from_id"`
-	ToID      primitive.ObjectID `bson:"to_id" json:"to_id"`
-	Content   string             `bson:"content" json:"content"`
-	IsRead    bool               `bson:"is_read" json:"is_read"`
-	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
-}
