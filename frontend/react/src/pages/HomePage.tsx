@@ -19,6 +19,8 @@ import type { Platinum, Stats, StatusFilter, ViewMode } from '../types/app';
 type HomePageProps = {
   stats: Stats | null;
   monthlyPlatinums: number;
+  syncingAchievements: boolean;
+  onRefreshAchievements: () => void;
   query: string;
   onQueryChange: (value: string) => void;
   statusFilter: StatusFilter;
@@ -45,6 +47,8 @@ const STATUS_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
 export default function HomePage({
   stats,
   monthlyPlatinums,
+  syncingAchievements,
+  onRefreshAchievements,
   query,
   onQueryChange,
   statusFilter,
@@ -86,6 +90,19 @@ export default function HomePage({
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <StatTile label="Platinas" value={stats?.totalPlatinums ?? 0} helper="Titulos finalizados" />
             <StatTile label="Jogos" value={stats?.totalGames ?? 0} helper="Biblioteca sincronizada" />
+          </div>
+
+          <div className="mt-5">
+            <button
+              type="button"
+              onClick={onRefreshAchievements}
+              disabled={syncingAchievements}
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--ink-main)] px-4 py-2.5 font-mono text-xs uppercase tracking-[0.16em] text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-55"
+              aria-label="Atualizar conquistas"
+            >
+              <RefreshCw className={syncingAchievements ? 'animate-spin' : ''} size={14} />
+              {syncingAchievements ? 'Atualizando...' : 'Atualizar conquistas'}
+            </button>
           </div>
         </div>
       </motion.section>

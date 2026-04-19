@@ -1028,6 +1028,8 @@ export default function App() {
           <HomePage
             stats={stats}
             monthlyPlatinums={monthlyPlatinums}
+            syncingAchievements={steamLoading}
+            onRefreshAchievements={handleSyncSteam}
             query={query}
             onQueryChange={setQuery}
             statusFilter={statusFilter}
