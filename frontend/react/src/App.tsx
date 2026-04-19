@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { CheckCircle2, Clock3, LoaderCircle, Moon, Sun, Trophy, X } from 'lucide-react';
 
 import BrandLogo from './components/BrandLogo';
-import AppFooter from './components/AppFooter';
 import AppTopBar from './components/AppTopBar';
 import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
@@ -880,8 +879,6 @@ export default function App() {
           )}
         </main>
 
-        <AppFooter />
-
         <AnimatePresence>
           {selectedGame && (
             <motion.div
@@ -1049,8 +1046,6 @@ export default function App() {
           />
         )}
       </main>
-
-      <AppFooter />
 
       <AnimatePresence>
         {selectedGame && (
