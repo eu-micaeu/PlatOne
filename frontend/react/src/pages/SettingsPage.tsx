@@ -67,95 +67,89 @@ export default function SettingsPage({
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
       <motion.section
-        initial={{ opacity: 0, y: 18 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
+        transition={{ duration: 0.3 }}
         className="glass-panel p-6 sm:p-8"
       >
-        <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-black/5 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.24em] text-black/60">
+        <div className="mb-2 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-[var(--text-soft)]">
           <ShieldCheck size={13} />
-          Configuracoes
+          <span>Configurações</span>
         </div>
 
-        <h1 className="font-display text-4xl leading-tight sm:text-5xl">Conta e seguranca</h1>
-        <p className="mt-3 text-sm text-black/70 sm:text-base">
-          Gerencie seus dados de conta, conexoes e opcoes de privacidade.
+        <h1 className="font-display text-3xl font-bold tracking-tight">Conta e Segurança</h1>
+        <p className="mt-1 text-sm text-[var(--text-soft)]">
+          Gerencie seus dados de conta, conexões e opções de privacidade.
         </p>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-black/10 bg-white/55 p-4">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">Nome</p>
-            <p className="mt-1 text-base font-semibold text-black/85">{user?.name}</p>
+        <div className="mt-6 grid gap-4 border-t border-black/10 dark:border-white/10 pt-6 sm:grid-cols-2">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-soft)]">Nome</p>
+            <p className="mt-1 font-semibold text-[var(--text-main)]">{user?.name}</p>
           </div>
-          <div className="rounded-xl border border-black/10 bg-white/55 p-4">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">Email</p>
-            <p className="mt-1 text-base font-semibold text-black/85">{user?.email}</p>
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-soft)]">Email</p>
+            <p className="mt-1 font-semibold text-[var(--text-main)]">{user?.email}</p>
           </div>
-          <div className="rounded-xl border border-black/10 bg-white/55 p-4 sm:col-span-2">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">Conta criada em</p>
-            <p className="mt-1 text-base font-semibold text-black/85">
-              {user?.createdAt ? formatDateTime(user.createdAt) : 'Nao informado'}
+          <div className="sm:col-span-2">
+            <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-soft)]">Conta criada em</p>
+            <p className="mt-1 text-sm font-semibold text-[var(--text-main)]">
+              {user?.createdAt ? formatDateTime(user.createdAt) : 'Não informado'}
             </p>
           </div>
         </div>
       </motion.section>
 
       <motion.section
-        initial={{ opacity: 0, y: 18 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: 0.05 }}
-        className="rounded-2xl border-2 border-[color:color-mix(in_oklab,var(--brand-cyan)_50%,var(--surface-border))] bg-[color:color-mix(in_oklab,var(--surface-soft)_78%,var(--brand-cyan)_22%)] p-5 sm:p-6 shadow-lg shadow-[color:color-mix(in_oklab,var(--brand-cyan)_35%,transparent)]"
+        transition={{ duration: 0.3, delay: 0.05 }}
+        className="glass-panel p-6 border-sky-500/30"
       >
         <div className="flex items-start gap-3">
-          <div className="rounded-lg bg-[color:color-mix(in_oklab,var(--brand-cyan)_24%,transparent)] p-2.5">
-            <ShieldCheck size={20} className="text-[color:color-mix(in_oklab,var(--brand-cyan)_72%,var(--text-main))]" />
+          <div className="rounded p-2 bg-sky-500/10 text-sky-600 dark:text-sky-400">
+            <ShieldCheck size={18} />
           </div>
           <div className="flex-1">
-            <p className="font-display text-2xl leading-tight text-[color:color-mix(in_oklab,var(--text-main)_84%,var(--brand-cyan))]">Seu perfil PRECISA estar PUBLICO na Steam!</p>
-            <div className="mt-3 space-y-2 rounded-lg border border-[color:color-mix(in_oklab,var(--brand-cyan)_42%,var(--surface-border))] bg-[color:color-mix(in_oklab,var(--surface-soft)_86%,var(--brand-cyan)_14%)] p-3">
-              <p className="text-sm font-semibold text-[color:color-mix(in_oklab,var(--text-main)_76%,var(--brand-cyan))]">
-                ⚠️ Configuracao obrigatoria na Steam:
-              </p>
-              <p className="text-sm text-[color:color-mix(in_oklab,var(--text-main)_70%,var(--brand-cyan))]">
-                Acesse sua conta Steam, vá para <span className="rounded bg-[color:color-mix(in_oklab,var(--brand-cyan)_20%,var(--surface-soft))] px-1.5 py-0.5 font-mono">Perfil</span> → <span className="rounded bg-[color:color-mix(in_oklab,var(--brand-cyan)_20%,var(--surface-soft))] px-1.5 py-0.5 font-mono">Editar Perfil</span> e altere a visibilidade para <span className="font-semibold">PUBLICO</span>.
-              </p>
-            </div>
-            <p className="mt-3 text-sm text-[color:color-mix(in_oklab,var(--text-main)_76%,var(--brand-cyan))]">
-              Sem seu perfil estar <span className="font-bold text-[color:color-mix(in_oklab,var(--text-main)_86%,var(--brand-cyan))]">PUBLICO NA STEAM</span>, o PlatOne nao conseguira sincronizar suas platinas, jogos e conquistas.
+            <h2 className="font-display text-lg font-bold tracking-tight text-[var(--text-main)]">Perfil Público na Steam</h2>
+            <p className="mt-1 text-sm text-[var(--text-soft)]">
+              Acesse sua conta Steam, vá para <span className="font-mono font-medium">Perfil</span> → <span className="font-mono font-medium">Editar Perfil</span> e altere a visibilidade dos detalhes dos jogos para <span className="font-semibold text-[var(--text-main)]">PÚBLICO</span> para permitir a sincronização.
             </p>
           </div>
         </div>
       </motion.section>
 
       <motion.section
-        initial={{ opacity: 0, y: 18 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: 0.1 }}
+        transition={{ duration: 0.3, delay: 0.08 }}
         className="glass-panel p-6 sm:p-8"
       >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="font-display text-3xl leading-tight">Conexao Steam</p>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-display text-xl font-bold tracking-tight">Conexão Steam</h2>
           <span
-            className={`rounded-full px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] ${
-              steamStatus.connected ? 'bg-emerald-500/12 text-emerald-700' : 'bg-amber-500/12 text-amber-700'
+            className={`rounded border px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider ${
+              steamStatus.connected
+                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                : 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
             }`}
           >
             {steamStatus.connected ? 'Conectada' : 'Desconectada'}
           </span>
         </div>
 
-        <div className="mt-4 rounded-xl border border-black/10 bg-white/70 p-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-black/55">SteamID</p>
-          <p className="mt-1 text-sm text-black/75">
+        <div className="mt-4 rounded-lg border border-black/10 dark:border-white/10 p-4">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-soft)]">SteamID</p>
+          <p className="mt-1 font-mono text-sm text-[var(--text-main)]">
             {steamStatus.steamId ? steamStatus.steamId : 'Nenhuma conta Steam conectada.'}
           </p>
-          <p className="mt-1 text-xs text-black/55">
-            {steamStatus.linkedAt ? `Conectada em ${formatDateTime(steamStatus.linkedAt)}` : 'Sem vinculacao ativa'}
+          <p className="mt-1 text-xs text-[var(--text-soft)]">
+            {steamStatus.linkedAt ? `Conectada em ${formatDateTime(steamStatus.linkedAt)}` : 'Sem vinculação ativa'}
           </p>
         </div>
 
         {steamError && (
-          <p className="mt-3 rounded-lg border border-amber-300/70 bg-amber-100/70 px-3 py-2 text-sm text-amber-800">
+          <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
             {steamError}
           </p>
         )}
@@ -164,7 +158,7 @@ export default function SettingsPage({
           {steamStatus.connected ? (
             <>
               <button
-                className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg border border-black/10 dark:border-white/10 px-3.5 py-2 font-mono text-xs uppercase tracking-wider font-medium text-[var(--text-main)] hover:bg-black/5 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
                 type="button"
                 onClick={onSyncSteam}
                 disabled={steamLoading || loadingData}
@@ -173,7 +167,7 @@ export default function SettingsPage({
                 Sync Steam
               </button>
               <button
-                className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg border border-black/10 dark:border-white/10 px-3.5 py-2 font-mono text-xs uppercase tracking-wider font-medium text-[var(--text-soft)] hover:text-red-500 hover:bg-black/5 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
                 type="button"
                 onClick={onDisconnectSteam}
                 disabled={steamLoading}
@@ -184,7 +178,7 @@ export default function SettingsPage({
             </>
           ) : (
             <button
-              className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-lg bg-[var(--ink-main)] px-4 py-2 font-mono text-xs uppercase tracking-wider text-white dark:bg-white dark:text-black font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
               type="button"
               onClick={onConnectSteam}
               disabled={steamLoading}
@@ -197,17 +191,17 @@ export default function SettingsPage({
       </motion.section>
 
       <motion.section
-        initial={{ opacity: 0, y: 18 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: 0.1 }}
-        className="rounded-2xl border border-red-300/50 bg-red-100/45 p-4 sm:p-5"
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="glass-panel p-6 border-red-500/30"
       >
-        <p className="font-display text-2xl leading-tight text-red-700">Zona de perigo</p>
-        <p className="mt-2 text-sm text-red-700/90">
-          Voce pode deletar sua conta por aqui. Esta acao remove acesso e dados de autenticacao de forma permanente.
+        <h2 className="font-display text-lg font-bold tracking-tight text-red-600 dark:text-red-400">Zona de Perigo</h2>
+        <p className="mt-1 text-sm text-[var(--text-soft)]">
+          Você pode apagar sua conta permanentemente por aqui. Esta ação não pode ser desfeita.
         </p>
         {profileError && (
-          <p className="mt-3 rounded-lg border border-red-300/70 bg-white/70 px-3 py-2 text-sm text-red-700">
+          <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-600 dark:text-red-400">
             {profileError}
           </p>
         )}
@@ -215,16 +209,16 @@ export default function SettingsPage({
           type="button"
           onClick={onDeleteAccount}
           disabled={deleteSubmitting}
-          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 font-mono text-xs uppercase tracking-wider font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {deleteSubmitting ? (
             <>
-              <LoaderCircle size={16} className="animate-spin" />
+              <LoaderCircle size={14} className="animate-spin" />
               Apagando conta...
             </>
           ) : (
             <>
-              <Trash2 size={16} />
+              <Trash2 size={14} />
               Apagar minha conta
             </>
           )}

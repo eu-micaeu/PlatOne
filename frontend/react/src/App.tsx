@@ -807,15 +807,15 @@ export default function App() {
   if (!isAuthenticated && isPublicProfileRoute) {
     return (
       <>
-        <header className="sticky top-0 z-40 border-b border-black/10 bg-[var(--bg-main)]/75 backdrop-blur-xl">
-          <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-40 border-b border-black/10 dark:border-white/10 bg-[var(--bg-main)]">
+          <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
             <div className="flex items-center gap-3">
-              <div className="rounded-2xl border border-black/10 bg-white/70 p-2 shadow-sm shadow-black/5">
-                <BrandLogo variant={themeMode === 'dark' ? 'light' : 'dark'} className="h-8 w-8" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--ink-main)] text-white">
+                <BrandLogo variant="inverse" className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-display text-xl leading-none tracking-tight">PlatOne</p>
-                <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-black/55">Perfil publico</p>
+                <p className="font-display text-lg font-bold leading-none tracking-tight">PlatOne</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-soft)]">Perfil público</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -882,56 +882,56 @@ export default function App() {
         <AnimatePresence>
           {selectedGame && (
             <motion.div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-8 backdrop-blur-sm"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-8"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeAchievementsModal}
             >
               <motion.section
-                className="glass-panel w-full max-w-4xl overflow-hidden"
-                initial={{ opacity: 0, y: 16, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                className="glass-panel w-full max-w-3xl overflow-hidden"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
                 transition={{ duration: 0.2 }}
                 onClick={(event) => event.stopPropagation()}
               >
-                <div className="border-b border-black/10 px-5 py-4 sm:px-6">
+                <div className="border-b border-black/10 dark:border-white/10 px-5 py-4 sm:px-6">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-black/55">Detalhes do jogo</p>
-                      <h2 className="mt-1 font-display text-3xl leading-tight">{selectedGame.title}</h2>
-                      <p className="mt-2 text-sm text-black/65">
-                        {selectedGame.unlocked}/{selectedGame.total} conquistas no total
+                      <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-soft)]">Detalhes do Jogo</p>
+                      <h2 className="mt-0.5 font-display text-2xl font-bold tracking-tight text-[var(--text-main)]">{selectedGame.title}</h2>
+                      <p className="mt-1 text-xs text-[var(--text-soft)]">
+                        {selectedGame.unlocked} de {selectedGame.total} conquistas desbloqueadas
                       </p>
                     </div>
 
                     <button
                       type="button"
-                      className="rounded-lg p-2 text-black/50 transition-colors hover:bg-black/5 hover:text-black/80"
+                      className="rounded-md p-1.5 text-[var(--text-soft)] hover:text-[var(--text-main)] transition-colors"
                       onClick={closeAchievementsModal}
                       aria-label="Fechar detalhes"
                     >
-                      <X size={16} />
+                      <X size={18} />
                     </button>
                   </div>
                 </div>
 
-                <div className="max-h-[70vh] overflow-y-auto px-5 py-4 sm:px-6">
+                <div className="max-h-[70vh] overflow-y-auto px-5 py-5 sm:px-6">
                   {achievementsLoading ? (
-                    <div className="flex min-h-52 items-center justify-center">
-                      <LoaderCircle className="animate-spin text-black/35" size={28} />
+                    <div className="flex min-h-44 items-center justify-center">
+                      <LoaderCircle className="animate-spin text-[var(--text-soft)]" size={24} />
                     </div>
                   ) : achievementsError ? (
-                    <p className="rounded-xl border border-red-300/55 bg-red-100/55 px-3 py-2 text-sm text-red-700">
+                    <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-500">
                       {achievementsError}
                     </p>
                   ) : (
                     <div className="space-y-6">
                       <div>
-                        <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-500/12 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-emerald-700">
-                          <CheckCircle2 size={13} />
-                          Conquistadas ({achievedAchievements.length})
+                        <div className="mb-3 inline-flex items-center gap-1.5 rounded border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 size={12} />
+                          <span>Conquistadas ({achievedAchievements.length})</span>
                         </div>
                         <div className="space-y-2">
                           {achievedAchievements.length > 0 ? (
@@ -939,15 +939,15 @@ export default function App() {
                               <AchievementRow key={achievement.id} achievement={achievement} />
                             ))
                           ) : (
-                            <p className="text-sm text-black/60">Nenhuma conquista obtida ainda.</p>
+                            <p className="text-xs text-[var(--text-soft)]">Nenhuma conquista obtida ainda.</p>
                           )}
                         </div>
                       </div>
 
                       <div>
-                        <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-amber-500/12 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-amber-700">
-                          <Clock3 size={13} />
-                          Faltando ({missingAchievements.length})
+                        <div className="mb-3 inline-flex items-center gap-1.5 rounded border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                          <Clock3 size={12} />
+                          <span>Faltando ({missingAchievements.length})</span>
                         </div>
                         <div className="space-y-2">
                           {missingAchievements.length > 0 ? (
@@ -955,7 +955,7 @@ export default function App() {
                               <AchievementRow key={achievement.id} achievement={achievement} />
                             ))
                           ) : (
-                            <p className="text-sm text-black/60">Voce ja desbloqueou todas as conquistas deste jogo.</p>
+                            <p className="text-xs text-[var(--text-soft)]">Você já desbloqueou todas as conquistas deste jogo.</p>
                           )}
                         </div>
                       </div>
@@ -1144,8 +1144,8 @@ function AchievementRow({ achievement }: { key?: string; achievement: Achievemen
   const iconSource = achievement.achieved ? achievement.icon : achievement.iconGray ?? achievement.icon;
 
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-black/10 bg-white/60 p-3">
-      <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-black/5">
+    <div className="flex items-start gap-3 rounded-lg border border-black/10 dark:border-white/10 bg-transparent p-3">
+      <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-neutral-100 dark:bg-neutral-800">
         {iconSource ? (
           <img
             src={iconSource}
@@ -1156,7 +1156,7 @@ function AchievementRow({ achievement }: { key?: string; achievement: Achievemen
             referrerPolicy="no-referrer"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-black/35">
+          <div className="flex h-full w-full items-center justify-center text-[var(--text-soft)]">
             <Trophy size={14} />
           </div>
         )}
@@ -1164,16 +1164,16 @@ function AchievementRow({ achievement }: { key?: string; achievement: Achievemen
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-semibold text-black/85">{achievement.name}</p>
+          <p className="text-sm font-semibold text-[var(--text-main)]">{achievement.name}</p>
           {achievement.hidden && (
-            <span className="rounded-full bg-black/8 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-black/55">
+            <span className="rounded border border-black/10 dark:border-white/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[var(--text-soft)]">
               Oculta
             </span>
           )}
         </div>
-        {achievement.description && <p className="mt-1 text-xs text-black/65">{achievement.description}</p>}
+        {achievement.description && <p className="mt-0.5 text-xs text-[var(--text-soft)]">{achievement.description}</p>}
         {achievement.achieved && achievement.unlockTime && (
-          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-700">
+          <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
             Desbloqueada em {formatDateTime(achievement.unlockTime)}
           </p>
         )}
