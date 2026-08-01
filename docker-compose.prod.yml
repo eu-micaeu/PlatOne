@@ -1,36 +1,55 @@
 services:
+  mongodb_prod:
+    image: mongo:7.0
+    container_name: platone_mongodb_prod
+    ports:
+      - "${MONGODB_PROD_PORT:-27018}:27017"
+    volumes:
+      - mongodb_data_prod:/data/db
+    restart: unless-stopped
+    networks:
+      - platone_prod_network
+
   backend:
     build:
       context: ./backend/go
       dockerfile: Dockerfile
+    container_name: platone_backend_prod
     ports:
       - "8085:8085"
     environment:
       GO_ENV: production
       PORT: 8085
-      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required in production}
+      DATABASE_URL: ${DATABASE_URL:-mongodb://mongodb_prod:27017/platone_prod}
       STEAM_API_KEY: ${STEAM_API_KEY:-}
+    depends_on:
+      - mongodb_prod
     restart: unless-stopped
     networks:
-      - platone_network
+      - platone_prod_network
 
   frontend:
     build:
       context: ./frontend/react
       dockerfile: Dockerfile
+    container_name: platone_frontend_prod
     ports:
       - "3005:3005"
     environment:
       NODE_ENV: production
       BACKEND_URL: http://backend:8085
-      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required in production}
-      APP_BASE_URL: ${APP_BASE_URL:?APP_BASE_URL is required in production}
+      DATABASE_URL: ${DATABASE_URL:-mongodb://mongodb_prod:27017/platone_prod}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3005}
     depends_on:
       - backend
+      - mongodb_prod
     restart: unless-stopped
     networks:
-      - platone_network
+      - platone_prod_network
+
+volumes:
+  mongodb_data_prod:
 
 networks:
-  platone_network:
+  platone_prod_network:
     driver: bridge
