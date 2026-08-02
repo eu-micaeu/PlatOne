@@ -87,7 +87,7 @@ export default function AuthPage({
 
           <div className="border-t border-black/10 dark:border-white/10 pt-6">
             <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-soft)]">Status do Sistema</p>
-            <p className="mt-1 font-mono text-xs text-[var(--text-main)]">Sincronização Steam Ativa • PlatOne <v2 className="0 1"></v2></p>
+            <p className="mt-1 font-mono text-xs text-[var(--text-main)]">• PlatOne</p>
           </div>
         </motion.section>
 
