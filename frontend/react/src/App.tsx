@@ -29,7 +29,7 @@ const DEFAULT_STEAM_STATUS: SteamStatus = {
   linkedAt: null,
 };
 
-type AppRoute = '/home' | '/login' | '/register' | '/profile' | '/settings' | `/profile/${string}`;
+type AppRoute = '/' | '/home' | '/login' | '/register' | '/profile' | '/settings' | `/profile/${string}`;
 type ThemeMode = 'light' | 'dark';
 
 export default function App() {
@@ -85,7 +85,7 @@ export default function App() {
   const isOwnProfileRoute = routePath === '/profile';
   const isProfileRoute = isOwnProfileRoute || isPublicProfileRoute;
   const isSettingsRoute = routePath === '/settings';
-  const isLoginRoute = routePath === '/login';
+  const isLoginRoute = routePath === '/' || routePath === '/login';
   const isRegisterRoute = routePath === '/register';
   const isPublicRoute = isLoginRoute || isRegisterRoute || isPublicProfileRoute;
 
@@ -391,7 +391,7 @@ export default function App() {
     }
 
     if (!isPublicRoute) {
-      navigateTo('/login', true);
+      navigateTo('/', true);
     }
   }, [authChecking, isAuthenticated, isLoginRoute, isPublicRoute, isRegisterRoute, navigateTo]);
 
@@ -617,7 +617,7 @@ export default function App() {
   };
 
   const handleModeChange = (mode: AuthMode) => {
-    navigateTo(mode === 'register' ? '/register' : '/login');
+    navigateTo(mode === 'register' ? '/register' : '/');
     setAuthError(null);
     resetAuthForm();
   };
@@ -640,7 +640,7 @@ export default function App() {
       setPlatformFilter('all');
       setStatusFilter('all');
       setViewMode('grid');
-      navigateTo('/login', true);
+      navigateTo('/', true);
     }
   };
 
@@ -673,7 +673,7 @@ export default function App() {
       setPlatformFilter('all');
       setStatusFilter('all');
       setViewMode('grid');
-      navigateTo('/login', true);
+      navigateTo('/', true);
     } catch (error) {
       console.error('Account deletion failed:', error);
       setProfileError(error instanceof Error ? error.message : 'Falha ao apagar a conta.');
@@ -832,7 +832,7 @@ export default function App() {
               <button
                 className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/65 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black/75 transition-all hover:-translate-y-0.5 hover:bg-white"
                 type="button"
-                onClick={() => navigateTo('/login')}
+                onClick={() => navigateTo('/')}
               >
                 Entrar
               </button>
@@ -1204,8 +1204,8 @@ function handleGameImageError(event: SyntheticEvent<HTMLImageElement>) {
 }
 
 function normalizePath(pathname: string): AppRoute {
-  if (pathname === '/login') {
-    return '/login';
+  if (pathname === '/' || pathname === '/login') {
+    return '/';
   }
 
   if (pathname === '/register') {
@@ -1227,12 +1227,16 @@ function normalizePath(pathname: string): AppRoute {
     return '/settings';
   }
 
-  return '/home';
+  if (pathname === '/home') {
+    return '/home';
+  }
+
+  return '/';
 }
 
 function getNormalizedPath(): AppRoute {
   if (typeof window === 'undefined') {
-    return '/home';
+    return '/';
   }
 
   return normalizePath(window.location.pathname);

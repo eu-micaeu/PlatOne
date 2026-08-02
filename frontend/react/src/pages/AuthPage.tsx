@@ -54,12 +54,12 @@ export default function AuthPage({
 
   return (
     <main className="relative mx-auto flex w-full max-w-7xl flex-1 min-h-[100dvh] items-center justify-center p-4 sm:p-6 lg:p-8">
-      <div className="relative z-10 grid w-full flex-1 gap-6 lg:grid-cols-2 lg:items-center max-w-5xl">
+      <div className="relative z-10 grid w-full flex-1 gap-6 lg:grid-cols-2 lg:items-stretch max-w-5xl">
         <motion.section
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="auth-hero-panel hidden h-full flex-col justify-between p-8 lg:flex"
+          className="auth-hero-panel hidden h-full w-full flex-col justify-between p-6 sm:p-8 lg:flex"
         >
           <div>
             <div className="mb-8 flex items-center gap-3">
@@ -95,7 +95,7 @@ export default function AuthPage({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.05 }}
-          className="glass-panel mx-auto flex h-full w-full max-w-md flex-col p-6 sm:p-8"
+          className="glass-panel flex h-full w-full flex-col justify-between p-6 sm:p-8"
         >
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-2 lg:hidden">
