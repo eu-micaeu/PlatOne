@@ -2,8 +2,13 @@ import express from "express";
 import { createServer as createHttpServer } from "http";
 import path from "path";
 import crypto from "crypto";
+import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { MongoClient, MongoServerError, ObjectId, type Collection, type WithId } from "mongodb";
+
+// Load environment variables from root .env and local .env
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+dotenv.config();
 
 const STEAM_OPENID_ENDPOINT = "https://steamcommunity.com/openid/login";
 const STEAM_STATE_TTL_SECONDS = 10 * 60;
@@ -51,14 +56,28 @@ const AUTH_USERS_COLLECTION = process.env.AUTH_USERS_COLLECTION ?? "auth_users";
 const AUTH_SESSIONS_COLLECTION = process.env.AUTH_SESSIONS_COLLECTION ?? "auth_sessions";
 const AUTH_STEAM_STATES_COLLECTION = process.env.AUTH_STEAM_STATES_COLLECTION ?? "auth_steam_states";
 
-// In production, APP_BASE_URL must be explicitly set via env
-// In development, it defaults to localhost on the fixed frontend port.
-const APP_BASE_URL_ENV = process.env.APP_BASE_URL?.replace(/\/+$/, "");
-const APP_BASE_URL = APP_BASE_URL_ENV ?? (
-  process.env.NODE_ENV === "production"
-    ? (() => { throw new Error("APP_BASE_URL is required in production"); })()
-    : "http://localhost:3005"
-);
+function getAppBaseURL(req?: express.Request): string {
+  const envUrl = process.env.APP_BASE_URL;
+  if (envUrl && envUrl.trim().length > 0) {
+    let cleaned = envUrl.trim().replace(/\/+$/, "");
+    if (cleaned.endsWith("/api")) {
+      cleaned = cleaned.slice(0, -4).replace(/\/+$/, "");
+    }
+    if (cleaned) {
+      return cleaned;
+    }
+  }
+
+  if (req) {
+    const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol || "http";
+    const host = (req.headers["x-forwarded-host"] as string) || req.headers.host;
+    if (host) {
+      return `${proto}://${host}`;
+    }
+  }
+
+  return "http://localhost:3005";
+}
 
 function hashPassword(rawPassword: string): string {
   return crypto.createHash("sha256").update(rawPassword).digest("hex");
@@ -264,12 +283,13 @@ function createSteamState(): string {
   return crypto.randomBytes(24).toString("hex");
 }
 
-function buildSteamConnectURL(state: string): string {
+function buildSteamConnectURL(state: string, req?: express.Request): string {
+  const baseUrl = getAppBaseURL(req);
   const params = new URLSearchParams({
     "openid.ns": "http://specs.openid.net/auth/2.0",
     "openid.mode": "checkid_setup",
-    "openid.return_to": `${APP_BASE_URL}/api/steam/callback?state=${encodeURIComponent(state)}`,
-    "openid.realm": APP_BASE_URL,
+    "openid.return_to": `${baseUrl}/api/steam/callback?state=${encodeURIComponent(state)}`,
+    "openid.realm": baseUrl,
     "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
     "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
   });
@@ -287,9 +307,10 @@ function getQueryParam(value: unknown): string {
   return "";
 }
 
-function buildAppRedirect(status: string): string {
+function buildAppRedirect(status: string, req?: express.Request): string {
+  const baseUrl = getAppBaseURL(req);
   const encodedStatus = encodeURIComponent(status);
-  return `${APP_BASE_URL}/home?steam=${encodedStatus}`;
+  return `${baseUrl}/home?steam=${encodedStatus}`;
 }
 
 function extractSteamIDFromClaimedID(claimedID: string): string {
@@ -564,7 +585,7 @@ async function startServer() {
         createdAt: new Date(),
       });
 
-      res.json({ url: buildSteamConnectURL(state) });
+      res.json({ url: buildSteamConnectURL(state, req) });
     } catch (error) {
       console.error("Steam connect initialization failed:", error);
       res.status(500).json({ error: "Nao foi possivel iniciar conexao com a Steam." });
@@ -574,27 +595,27 @@ async function startServer() {
   app.get("/api/steam/callback", async (req, res) => {
     const state = getQueryParam(req.query.state).trim();
     if (!state) {
-      res.redirect(buildAppRedirect("missing_state"));
+      res.redirect(buildAppRedirect("missing_state", req));
       return;
     }
 
     try {
       const stateResult = await steamStatesCollection.findOneAndDelete({ state });
       if (!stateResult || !stateResult.userId) {
-        res.redirect(buildAppRedirect("invalid_state"));
+        res.redirect(buildAppRedirect("invalid_state", req));
         return;
       }
 
       const validAssertion = await validateSteamOpenID(req);
       if (!validAssertion) {
-        res.redirect(buildAppRedirect("invalid_assertion"));
+        res.redirect(buildAppRedirect("invalid_assertion", req));
         return;
       }
 
       const claimedID = getQueryParam(req.query["openid.claimed_id"]);
       const steamID = extractSteamIDFromClaimedID(claimedID);
       if (!steamID) {
-        res.redirect(buildAppRedirect("invalid_steam_id"));
+        res.redirect(buildAppRedirect("invalid_steam_id", req));
         return;
       }
 
@@ -610,10 +631,10 @@ async function startServer() {
         }
       );
 
-      res.redirect(buildAppRedirect("connected"));
+      res.redirect(buildAppRedirect("connected", req));
     } catch (error) {
       console.error("Steam callback failed:", error);
-      res.redirect(buildAppRedirect("callback_error"));
+      res.redirect(buildAppRedirect("callback_error", req));
     }
   });
 
