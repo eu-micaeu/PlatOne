@@ -1,10 +1,14 @@
 import express from "express";
 import { createServer as createHttpServer } from "http";
 import path from "path";
+import { fileURLToPath } from "url";
 import crypto from "crypto";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { MongoClient, MongoServerError, ObjectId, type Collection, type WithId } from "mongodb";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables from root .env and local .env
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
