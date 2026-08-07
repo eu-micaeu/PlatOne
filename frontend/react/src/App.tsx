@@ -11,6 +11,7 @@ import SettingsPage from './pages/SettingsPage';
 import ConfirmLogoutModal from './components/ConfirmLogoutModal';
 import CookieModal from './components/CookieModal';
 import AvatarModal from './components/AvatarModal';
+import FriendsChatSidebar from './components/FriendsChatSidebar';
 import type {
   Achievement,
   AuthMode,
@@ -71,6 +72,7 @@ export default function App() {
   const [profileError, setProfileError] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [isFriendsSidebarOpen, setIsFriendsSidebarOpen] = useState(false);
 
   const [publicProfileUser, setPublicProfileUser] = useState<AuthUser | null>(null);
   const [publicPlatinums, setPublicPlatinums] = useState<Platinum[]>([]);
@@ -1156,6 +1158,8 @@ export default function App() {
         onLogout={() => setShowLogoutModal(true)}
         themeMode={themeMode}
         onToggleTheme={toggleTheme}
+        onToggleFriendsSidebar={() => setIsFriendsSidebarOpen((prev) => !prev)}
+        isFriendsSidebarOpen={isFriendsSidebarOpen}
       />
 
       <main
@@ -1334,6 +1338,13 @@ export default function App() {
         userInitials={userInitials}
         onClose={() => setIsAvatarModalOpen(false)}
         onSaveAvatar={handleSaveAvatar}
+      />
+      <FriendsChatSidebar
+        isOpen={isFriendsSidebarOpen}
+        user={user}
+        authToken={authToken}
+        onClose={() => setIsFriendsSidebarOpen(false)}
+        onNavigateToProfile={(profileName) => navigateTo(`/profile/${encodeURIComponent(profileName)}`)}
       />
       <CookieModal />
     </>

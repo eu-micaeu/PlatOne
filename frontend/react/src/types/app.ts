@@ -60,3 +60,21 @@ export type ViewMode = 'grid' | 'list';
 
 export type AuthMode = 'login' | 'register';
 
+export interface Friend {
+  id: string;
+  name: string;
+  avatarUrl?: string | null;
+  status: 'online' | 'ingame' | 'offline';
+  currentGame?: string | null;
+  lastSeen?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  createdAt: string;
+}
+
+

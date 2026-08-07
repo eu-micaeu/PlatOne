@@ -46,6 +46,19 @@ type SteamStateRecord = {
   createdAt: Date;
 };
 
+type FriendRecord = {
+  userId: ObjectId;
+  friendUserId: ObjectId;
+  createdAt: Date;
+};
+
+type ChatMessageRecord = {
+  senderId: string;
+  receiverId: string;
+  content: string;
+  createdAt: Date;
+};
+
 type SafeUser = {
   id: string;
   name: string;
@@ -645,6 +658,8 @@ async function startServer() {
   const sessionsCollection = db.collection<SessionRecord>(AUTH_SESSIONS_COLLECTION);
   const steamStatesCollection = db.collection<SteamStateRecord>(AUTH_STEAM_STATES_COLLECTION);
   const platinumsCollection = db.collection("platinums");
+  const friendsCollection = db.collection<FriendRecord>("friends");
+  const chatMessagesCollection = db.collection<ChatMessageRecord>("chat_messages");
 
   await Promise.all([
     usersCollection.createIndex({ email: 1 }, { unique: true }),
@@ -784,6 +799,192 @@ async function startServer() {
     } catch (error) {
       console.error("Update avatar error:", error);
       res.status(500).json({ error: "Erro ao atualizar avatar do usuario." });
+    }
+  });
+
+  // Friends & Chat Endpoints
+  app.get("/api/friends", authMiddleware, async (req: AuthedRequest, res) => {
+    try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ error: "Nao autenticado" });
+        return;
+      }
+
+      const friendLinks = await friendsCollection.find({ userId }).toArray();
+      const realFriends: unknown[] = [];
+
+      for (const link of friendLinks) {
+        const u = await usersCollection.findOne({ _id: link.friendUserId });
+        if (u) {
+          realFriends.push({
+            id: u._id.toHexString(),
+            name: u.name,
+            avatarUrl: u.avatarUrl || null,
+            status: "online",
+            currentGame: "No PlatOne",
+            lastSeen: "Online agora",
+          });
+        }
+      }
+
+      res.json({ friends: realFriends });
+    } catch (error) {
+      console.error("Get friends error:", error);
+      res.status(500).json({ error: "Erro ao buscar amigos." });
+    }
+  });
+
+  app.post("/api/friends/add", authMiddleware, async (req: AuthedRequest, res) => {
+    try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ error: "Nao autenticado" });
+        return;
+      }
+
+      const query = String(req.body?.query ?? "").trim();
+      if (!query) {
+        res.status(400).json({ error: "Informe o nome ou email do amigo." });
+        return;
+      }
+
+      const targetUser = await usersCollection.findOne({
+        $or: [{ name: { $regex: `^${query}$`, $options: "i" } }, { email: query.toLowerCase() }],
+      });
+
+      if (!targetUser) {
+        res.status(404).json({ error: "Usuario nao encontrado no PlatOne." });
+        return;
+      }
+
+      if (targetUser._id.equals(userId)) {
+        res.status(400).json({ error: "Voce nao pode adicionar a si mesmo." });
+        return;
+      }
+
+      const existing = await friendsCollection.findOne({
+        userId,
+        friendUserId: targetUser._id,
+      });
+
+      if (existing) {
+        res.status(409).json({ error: "Este amigo ja esta na sua lista." });
+        return;
+      }
+
+      await friendsCollection.insertOne({
+        userId,
+        friendUserId: targetUser._id,
+        createdAt: new Date(),
+      });
+
+      res.status(201).json({
+        friend: {
+          id: targetUser._id.toHexString(),
+          name: targetUser.name,
+          avatarUrl: targetUser.avatarUrl || null,
+          status: "online",
+          currentGame: "No PlatOne",
+          lastSeen: "Online agora",
+        },
+      });
+    } catch (error) {
+      console.error("Add friend error:", error);
+      res.status(500).json({ error: "Erro ao adicionar amigo." });
+    }
+  });
+
+  app.delete("/api/friends/:friendId", authMiddleware, async (req: AuthedRequest, res) => {
+    try {
+      const userId = req.user?._id;
+      const friendIdStr = req.params?.friendId;
+      if (!userId || !friendIdStr) {
+        res.status(400).json({ error: "Requisicao invalida." });
+        return;
+      }
+
+      let friendObjId: ObjectId;
+      try {
+        friendObjId = new ObjectId(friendIdStr);
+      } catch {
+        res.status(400).json({ error: "ID de amigo invalido." });
+        return;
+      }
+
+      await friendsCollection.deleteOne({ userId, friendUserId: friendObjId });
+      res.status(204).send();
+    } catch (error) {
+      console.error("Remove friend error:", error);
+      res.status(500).json({ error: "Erro ao remover amigo." });
+    }
+  });
+
+  app.get("/api/chat/:friendId", authMiddleware, async (req: AuthedRequest, res) => {
+    try {
+      const userIdStr = req.user?._id.toHexString();
+      const friendId = req.params?.friendId;
+      if (!userIdStr || !friendId) {
+        res.status(400).json({ error: "Requisicao invalida." });
+        return;
+      }
+
+      const messages = await chatMessagesCollection
+        .find({
+          $or: [
+            { senderId: userIdStr, receiverId: friendId },
+            { senderId: friendId, receiverId: userIdStr },
+          ],
+        })
+        .sort({ createdAt: 1 })
+        .toArray();
+
+      const formatted = messages.map((m) => ({
+        id: m._id ? m._id.toHexString() : String(Math.random()),
+        senderId: m.senderId,
+        receiverId: m.receiverId,
+        content: m.content,
+        createdAt: m.createdAt.toISOString(),
+      }));
+
+      res.json({ messages: formatted });
+    } catch (error) {
+      console.error("Get chat messages error:", error);
+      res.status(500).json({ error: "Erro ao buscar mensagens do chat." });
+    }
+  });
+
+  app.post("/api/chat/:friendId", authMiddleware, async (req: AuthedRequest, res) => {
+    try {
+      const userIdStr = req.user?._id.toHexString();
+      const friendId = req.params?.friendId;
+      const content = String(req.body?.content ?? "").trim();
+
+      if (!userIdStr || !friendId || !content) {
+        res.status(400).json({ error: "Mensagem invalida." });
+        return;
+      }
+
+      const userMessageRecord: ChatMessageRecord = {
+        senderId: userIdStr,
+        receiverId: friendId,
+        content,
+        createdAt: new Date(),
+      };
+
+      const result = await chatMessagesCollection.insertOne(userMessageRecord);
+      const insertedMessage = {
+        id: result.insertedId.toHexString(),
+        senderId: userIdStr,
+        receiverId: friendId,
+        content,
+        createdAt: userMessageRecord.createdAt.toISOString(),
+      };
+
+      res.status(201).json({ message: insertedMessage });
+    } catch (error) {
+      console.error("Send chat message error:", error);
+      res.status(500).json({ error: "Erro ao enviar mensagem." });
     }
   });
 

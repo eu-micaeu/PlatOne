@@ -1,4 +1,4 @@
-import { House, LogOut, Moon, Settings2, Sun, type LucideIcon, UserRound } from 'lucide-react';
+import { House, LogOut, Moon, Settings2, Sun, type LucideIcon, UserRound, Users } from 'lucide-react';
 
 import BrandLogo from './BrandLogo';
 
@@ -12,6 +12,8 @@ type AppTopBarProps = {
   onLogout: () => void;
   themeMode: 'light' | 'dark';
   onToggleTheme: () => void;
+  onToggleFriendsSidebar?: () => void;
+  isFriendsSidebarOpen?: boolean;
 };
 
 type NavItem = {
@@ -34,6 +36,8 @@ export default function AppTopBar({
   onLogout,
   themeMode,
   onToggleTheme,
+  onToggleFriendsSidebar,
+  isFriendsSidebarOpen,
 }: AppTopBarProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-black/10 dark:border-white/10 bg-[var(--bg-main)]">
@@ -74,6 +78,26 @@ export default function AppTopBar({
               )}
               <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--text-main)] font-medium">
                 {userName}
+              </span>
+            </button>
+          )}
+
+          {onToggleFriendsSidebar && (
+            <button
+              className={`relative inline-flex h-9 items-center gap-1.5 rounded-lg border border-black/10 dark:border-white/10 px-2.5 transition-colors ${
+                isFriendsSidebarOpen
+                  ? 'bg-[var(--ink-main)] text-white dark:bg-white dark:text-black font-semibold'
+                  : 'bg-transparent text-[var(--text-main)] hover:bg-black/5 dark:hover:bg-white/10'
+              }`}
+              type="button"
+              onClick={onToggleFriendsSidebar}
+              aria-label="Abrir Amigos e Chat"
+              title="Amigos & Chat"
+            >
+              <Users size={15} />
+              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
               </span>
             </button>
           )}
