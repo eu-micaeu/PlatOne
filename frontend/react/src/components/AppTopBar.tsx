@@ -6,6 +6,7 @@ export type AppTopBarPath = '/home' | '/profile' | '/settings';
 
 type AppTopBarProps = {
   userName?: string;
+  userAvatarUrl?: string | null;
   activePath: AppTopBarPath | null;
   onNavigate: (path: AppTopBarPath) => void;
   onLogout: () => void;
@@ -27,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export default function AppTopBar({
   userName,
+  userAvatarUrl,
   activePath,
   onNavigate,
   onLogout,
@@ -53,9 +55,27 @@ export default function AppTopBar({
 
         <div className="flex items-center gap-2 sm:gap-2.5">
           {userName && (
-            <span className="hidden rounded-md border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--text-soft)] sm:inline-flex">
-              {userName}
-            </span>
+            <button
+              type="button"
+              onClick={() => onNavigate('/profile')}
+              className="hidden sm:inline-flex items-center gap-2 rounded-lg border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 p-1 pr-3 transition-colors hover:bg-black/10 dark:hover:bg-white/10"
+              title="Ver seu Perfil"
+            >
+              {userAvatarUrl ? (
+                <img
+                  src={userAvatarUrl}
+                  alt={userName}
+                  className="h-6 w-6 rounded-md object-cover border border-black/10 dark:border-white/15"
+                />
+              ) : (
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[var(--ink-main)] font-display text-[10px] font-bold text-white dark:bg-white dark:text-black">
+                  {userName.slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--text-main)] font-medium">
+                {userName}
+              </span>
+            </button>
           )}
 
           <button

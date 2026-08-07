@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { LoaderCircle, LogOut, RefreshCw, ShieldCheck, Trash2, UserCheck } from 'lucide-react';
+import { Camera, LoaderCircle, LogOut, RefreshCw, ShieldCheck, Trash2, UserCheck } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 
 import type { AuthUser, SteamStatus, XboxStatus } from '../types/app';
@@ -25,6 +25,7 @@ type SettingsPageProps = {
   onDeleteAccount: () => void;
   onUpdateSteamAPIKey: (apiKey: string) => Promise<void>;
   formatDateTime: (value: string) => string;
+  onOpenAvatarModal?: () => void;
 };
 
 export default function SettingsPage({
@@ -47,6 +48,7 @@ export default function SettingsPage({
   onDeleteAccount,
   onUpdateSteamAPIKey,
   formatDateTime,
+  onOpenAvatarModal,
 }: SettingsPageProps) {
   const [steamAPIKey, setSteamAPIKey] = useState('');
   const [steamAPIKeyLoading, setSteamAPIKeyLoading] = useState(false);
@@ -86,6 +88,8 @@ export default function SettingsPage({
     setGamertagInput('');
   };
 
+  const userInitials = user?.name ? user.name.slice(0, 2).toUpperCase() : 'PO';
+
   return (
     <div className="w-full space-y-6">
       <motion.section
@@ -101,8 +105,44 @@ export default function SettingsPage({
 
         <h1 className="font-display text-3xl font-bold tracking-tight">Conta e Segurança</h1>
         <p className="mt-1 text-sm text-[var(--text-soft)]">
-          Gerencie seus dados de conta, conexões e opções de privacidade.
+          Gerencie seus dados de conta, foto de perfil, conexões e opções de privacidade.
         </p>
+
+        {/* Profile Picture Section */}
+        <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-black/10 dark:border-white/10 pt-6">
+          <div className="flex items-center gap-4">
+            <div className="relative h-14 w-14 flex-shrink-0">
+              {user?.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user.name}
+                  className="h-14 w-14 rounded-xl object-cover border border-black/10 dark:border-white/20 shadow-sm"
+                />
+              ) : (
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[var(--ink-main)] font-display text-lg font-bold text-white dark:bg-white dark:text-black">
+                  {userInitials}
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="font-display text-base font-bold text-[var(--text-main)]">Foto de Perfil</p>
+              <p className="text-xs text-[var(--text-soft)]">
+                Exibida no seu perfil público e na barra superior.
+              </p>
+            </div>
+          </div>
+
+          {onOpenAvatarModal && (
+            <button
+              type="button"
+              onClick={onOpenAvatarModal}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-black/10 dark:border-white/10 px-4 py-2 font-mono text-xs uppercase tracking-wider text-[var(--text-main)] font-medium transition-colors hover:bg-black/5 dark:hover:bg-white/10"
+            >
+              <Camera size={14} />
+              {user?.avatarUrl ? 'Alterar Foto' : 'Adicionar Foto'}
+            </button>
+          )}
+        </div>
 
         <div className="mt-6 grid gap-4 border-t border-black/10 dark:border-white/10 pt-6 sm:grid-cols-2">
           <div>

@@ -10,6 +10,7 @@ import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import ConfirmLogoutModal from './components/ConfirmLogoutModal';
 import CookieModal from './components/CookieModal';
+import AvatarModal from './components/AvatarModal';
 import type {
   Achievement,
   AuthMode,
@@ -69,6 +70,7 @@ export default function App() {
   const [xboxError, setXboxError] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
 
   const [publicProfileUser, setPublicProfileUser] = useState<AuthUser | null>(null);
   const [publicPlatinums, setPublicPlatinums] = useState<Platinum[]>([]);
@@ -906,6 +908,29 @@ export default function App() {
     }
   };
 
+  const handleSaveAvatar = async (avatarUrl: string) => {
+    if (!authToken) {
+      throw new Error('Usuario nao autenticado');
+    }
+
+    const response = await fetch('/api/user/avatar', {
+      method: 'PUT',
+      headers: {
+        ...authHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ avatarUrl }),
+    });
+
+    if (!response.ok) {
+      const message = await readErrorMessage(response, 'Nao foi possivel atualizar a foto de perfil.');
+      throw new Error(message);
+    }
+
+    const payload = (await response.json()) as { user: AuthUser };
+    setUser(payload.user);
+  };
+
   const activeTopBarPath = isHomeRoute
     ? '/home'
     : isOwnProfileRoute
@@ -1125,6 +1150,7 @@ export default function App() {
     <>
       <AppTopBar
         userName={user?.name}
+        userAvatarUrl={user?.avatarUrl}
         activePath={activeTopBarPath}
         onNavigate={(path) => navigateTo(path)}
         onLogout={() => setShowLogoutModal(true)}
@@ -1158,6 +1184,7 @@ export default function App() {
             onDeleteAccount={handleDeleteAccount}
             onUpdateSteamAPIKey={handleUpdateSteamAPIKey}
             formatDateTime={formatDateTime}
+            onOpenAvatarModal={() => setIsAvatarModalOpen(true)}
           />
         ) : isProfileRoute ? (
           <ProfilePage
@@ -1180,6 +1207,7 @@ export default function App() {
             handleGameImageError={handleGameImageError}
             formatDateTime={formatDateTime}
             isReadOnly={isPublicProfileRoute}
+            onOpenAvatarModal={() => setIsAvatarModalOpen(true)}
           />
         ) : (
           <HomePage
@@ -1299,6 +1327,13 @@ export default function App() {
         isLoggingOut={isLoggingOut}
         onClose={() => setShowLogoutModal(false)}
         onConfirm={handleLogout}
+      />
+      <AvatarModal
+        isOpen={isAvatarModalOpen}
+        currentAvatarUrl={user?.avatarUrl}
+        userInitials={userInitials}
+        onClose={() => setIsAvatarModalOpen(false)}
+        onSaveAvatar={handleSaveAvatar}
       />
       <CookieModal />
     </>

@@ -21,6 +21,7 @@ type UserRecord = {
   name: string;
   email: string;
   passwordHash: string;
+  avatarUrl?: string;
   createdAt: Date;
   steam?: {
     steamId: string;
@@ -49,6 +50,7 @@ type SafeUser = {
   id: string;
   name: string;
   email: string;
+  avatarUrl?: string | null;
   createdAt: string;
   steamConnected: boolean;
   xboxConnected: boolean;
@@ -102,6 +104,7 @@ function sanitizeUser(user: WithId<UserRecord>): SafeUser {
     id: user._id.toHexString(),
     name: user.name,
     email: user.email,
+    avatarUrl: user.avatarUrl || null,
     createdAt: user.createdAt.toISOString(),
     steamConnected: Boolean(user.steam?.steamId),
     xboxConnected: Boolean(user.xbox?.gamertag),
@@ -755,6 +758,35 @@ async function startServer() {
     res.json({ user: sanitizeUser(req.user as WithId<UserRecord>) });
   });
 
+  app.put("/api/user/avatar", authMiddleware, async (req: AuthedRequest, res) => {
+    try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ error: "Nao autenticado" });
+        return;
+      }
+
+      const rawAvatar = req.body?.avatarUrl;
+      const avatarUrl = typeof rawAvatar === "string" ? rawAvatar.trim() : "";
+
+      await usersCollection.updateOne(
+        { _id: userId },
+        { $set: { avatarUrl } }
+      );
+
+      const updatedUser = await usersCollection.findOne({ _id: userId });
+      if (!updatedUser) {
+        res.status(404).json({ error: "Usuario nao encontrado." });
+        return;
+      }
+
+      res.json({ user: sanitizeUser(updatedUser) });
+    } catch (error) {
+      console.error("Update avatar error:", error);
+      res.status(500).json({ error: "Erro ao atualizar avatar do usuario." });
+    }
+  });
+
   app.post("/api/auth/logout", authMiddleware, async (req: AuthedRequest, res) => {
     try {
       if (req.token) {
@@ -1116,6 +1148,7 @@ async function startServer() {
         profile: {
           id: targetUser._id.toHexString(),
           name: targetUser.name,
+          avatarUrl: targetUser.avatarUrl || null,
           createdAt: targetUser.createdAt.toISOString(),
         },
         steamStatus: {
