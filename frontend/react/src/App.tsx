@@ -8,6 +8,8 @@ import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
+import ConfirmLogoutModal from './components/ConfirmLogoutModal';
+import CookieModal from './components/CookieModal';
 import type {
   Achievement,
   AuthMode,
@@ -53,6 +55,7 @@ export default function App() {
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
 
   const [platinums, setPlatinums] = useState<Platinum[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -83,6 +86,9 @@ export default function App() {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [achievementsLoading, setAchievementsLoading] = useState(false);
   const [achievementsError, setAchievementsError] = useState<string | null>(null);
+
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const authHeaders = useMemo(
     () => (authToken ? { Authorization: `Bearer ${authToken}` } : {}),
@@ -129,12 +135,19 @@ export default function App() {
     setRoutePath(targetPath);
   }, []);
 
-  const setSessionToken = useCallback((token: string | null) => {
+  const setSessionToken = useCallback((token: string | null, remember = true) => {
     setAuthToken(token);
     if (token) {
-      localStorage.setItem(TOKEN_STORAGE_KEY, token);
+      if (remember) {
+        localStorage.setItem(TOKEN_STORAGE_KEY, token);
+        sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+      } else {
+        sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+      }
     } else {
       localStorage.removeItem(TOKEN_STORAGE_KEY);
+      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
     }
   }, []);
 
@@ -730,7 +743,7 @@ export default function App() {
       }
 
       const result = (await response.json()) as AuthResponse;
-      setSessionToken(result.token);
+      setSessionToken(result.token, rememberMe);
       setUser(result.user);
       resetAuthForm();
       setAuthError(null);
@@ -751,6 +764,7 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
+      setIsLoggingOut(true);
       if (authToken) {
         await fetch('/api/auth/logout', {
           method: 'POST',
@@ -760,6 +774,8 @@ export default function App() {
     } catch (logoutError) {
       console.error('Logout failed:', logoutError);
     } finally {
+      setIsLoggingOut(false);
+      setShowLogoutModal(false);
       setSessionToken(null);
       setUser(null);
       setProfileError(null);
@@ -913,23 +929,28 @@ export default function App() {
 
   if (!isAuthenticated && !isPublicProfileRoute) {
     return (
-      <AuthPage
-        authMode={authMode}
-        authSubmitting={authSubmitting}
-        authError={authError}
-        nicknameInput={nicknameInput}
-        emailInput={emailInput}
-        passwordInput={passwordInput}
-        confirmPasswordInput={confirmPasswordInput}
-        onNicknameChange={setNicknameInput}
-        onEmailChange={setEmailInput}
-        onPasswordChange={setPasswordInput}
-        onConfirmPasswordChange={setConfirmPasswordInput}
-        onModeChange={handleModeChange}
-        onSubmit={handleAuthSubmit}
-        themeMode={themeMode}
-        onToggleTheme={toggleTheme}
-      />
+      <>
+        <AuthPage
+          authMode={authMode}
+          authSubmitting={authSubmitting}
+          authError={authError}
+          nicknameInput={nicknameInput}
+          emailInput={emailInput}
+          passwordInput={passwordInput}
+          confirmPasswordInput={confirmPasswordInput}
+          rememberMe={rememberMe}
+          onNicknameChange={setNicknameInput}
+          onEmailChange={setEmailInput}
+          onPasswordChange={setPasswordInput}
+          onConfirmPasswordChange={setConfirmPasswordInput}
+          onRememberMeChange={setRememberMe}
+          onModeChange={handleModeChange}
+          onSubmit={handleAuthSubmit}
+          themeMode={themeMode}
+          onToggleTheme={toggleTheme}
+        />
+        <CookieModal />
+      </>
     );
   }
 
@@ -1095,6 +1116,7 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+        <CookieModal />
       </>
     );
   }
@@ -1105,7 +1127,7 @@ export default function App() {
         userName={user?.name}
         activePath={activeTopBarPath}
         onNavigate={(path) => navigateTo(path)}
-        onLogout={handleLogout}
+        onLogout={() => setShowLogoutModal(true)}
         themeMode={themeMode}
         onToggleTheme={toggleTheme}
       />
@@ -1271,6 +1293,14 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmLogoutModal
+        isOpen={showLogoutModal}
+        isLoggingOut={isLoggingOut}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleLogout}
+      />
+      <CookieModal />
     </>
   );
 }
@@ -1398,7 +1428,7 @@ function getStoredToken(): string | null {
   if (typeof window === 'undefined') {
     return null;
   }
-  return localStorage.getItem(TOKEN_STORAGE_KEY);
+  return localStorage.getItem(TOKEN_STORAGE_KEY) || sessionStorage.getItem(TOKEN_STORAGE_KEY);
 }
 
 function getStoredTheme(): ThemeMode {

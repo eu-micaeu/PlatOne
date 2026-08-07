@@ -14,10 +14,12 @@ type AuthPageProps = {
   emailInput: string;
   passwordInput: string;
   confirmPasswordInput: string;
+  rememberMe: boolean;
   onNicknameChange: (value: string) => void;
   onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onConfirmPasswordChange: (value: string) => void;
+  onRememberMeChange: (value: boolean) => void;
   onModeChange: (mode: AuthMode) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   themeMode: 'light' | 'dark';
@@ -46,10 +48,12 @@ export default function AuthPage({
   emailInput,
   passwordInput,
   confirmPasswordInput,
+  rememberMe,
   onNicknameChange,
   onEmailChange,
   onPasswordChange,
   onConfirmPasswordChange,
+  onRememberMeChange,
   onModeChange,
   onSubmit,
   themeMode,
@@ -239,6 +243,22 @@ export default function AuthPage({
                   </button>
                 </div>
               </div>
+
+              {isLogin && (
+                <div className="flex items-center justify-between pt-1">
+                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(event) => onRememberMeChange(event.target.checked)}
+                      className="h-4 w-4 rounded border-black/20 dark:border-white/20 bg-transparent text-[var(--ink-main)] accent-[var(--ink-main)] cursor-pointer"
+                    />
+                    <span className="text-xs text-[var(--text-soft)] hover:text-[var(--text-main)] transition-colors font-medium">
+                      Mantenha-me conectado
+                    </span>
+                  </label>
+                </div>
+              )}
 
               {!isLogin && (
                 <div>
