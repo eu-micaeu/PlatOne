@@ -5,6 +5,7 @@ import { CheckCircle2, Clock3, ExternalLink, Trophy } from 'lucide-react';
 import type { Platinum, ViewMode } from '../types/app';
 
 type GameCardProps = {
+  key?: string;
   game: Platinum;
   viewMode: ViewMode;
   order: number;

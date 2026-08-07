@@ -1,7 +1,7 @@
-import { type JSX, type ReactNode, type SyntheticEvent } from 'react';
+import { useState, type JSX, type ReactNode, type SyntheticEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import GameCard from '../components/GameCard';
-import { Eye, Gamepad2, LoaderCircle, RefreshCw, ShieldCheck, Sparkles, TrendingUp, Trophy } from 'lucide-react';
+import { Check, Eye, Gamepad2, LoaderCircle, Share2, ShieldCheck, Trophy } from 'lucide-react';
 
 import type { AuthUser, Platinum, Stats, SteamStatus } from '../types/app';
 
@@ -48,9 +48,40 @@ export default function ProfilePage({
   formatDateTime,
   isReadOnly = false,
 }: ProfilePageProps) {
+  const [copied, setCopied] = useState(false);
+
   const platinumGames = [...profilePlatinums]
     .filter((game) => game.isPlatinum)
     .sort((a, b) => getGameActivityTimestamp(b) - getGameActivityTimestamp(a));
+
+  const handleShareProfile = async () => {
+    if (typeof window === 'undefined') return;
+
+    const profileName = user?.name ? encodeURIComponent(user.name) : '';
+    const shareUrl = profileName
+      ? `${window.location.origin}/profile/${profileName}`
+      : window.location.href;
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = shareUrl;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch (err) {
+      console.error('Falha ao copiar link do perfil:', err);
+    }
+  };
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
@@ -76,32 +107,35 @@ export default function ProfilePage({
             </div>
           </div>
 
-          {isReadOnly ? (
-            <div className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-black/10 dark:border-white/10 px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-[var(--text-soft)]">
-              <Eye size={14} />
-              Perfil público
-            </div>
-          ) : steamStatus.connected ? (
+          <div className="flex flex-wrap items-center gap-2.5 sm:justify-end">
+            {isReadOnly && (
+              <div className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-black/10 dark:border-white/10 px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-[var(--text-soft)]">
+                <Eye size={14} />
+                Perfil público
+              </div>
+            )}
+
+            {!isReadOnly && !steamStatus.connected && (
+              <button
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-black/10 dark:border-white/10 px-4 py-2 font-mono text-xs uppercase tracking-wider text-[var(--text-main)] font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+                type="button"
+                onClick={onConnectSteam}
+                disabled={steamLoading}
+              >
+                {steamLoading ? <LoaderCircle size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+                Conectar Steam
+              </button>
+            )}
+
             <button
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--ink-main)] px-4 py-2 font-mono text-xs uppercase tracking-wider text-white dark:bg-white dark:text-black font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--ink-main)] px-4 py-2 font-mono text-xs uppercase tracking-wider text-white dark:bg-white dark:text-black font-medium transition-all hover:opacity-90 active:scale-95"
               type="button"
-              onClick={onSyncSteam}
-              disabled={steamLoading || loadingData}
+              onClick={handleShareProfile}
             >
-              <RefreshCw size={14} className={steamLoading ? 'animate-spin' : ''} />
-              Atualizar Feed
+              {copied ? <Check size={14} className="text-emerald-400 dark:text-emerald-600" /> : <Share2 size={14} />}
+              {copied ? 'Link Copiado!' : 'Compartilhar Perfil'}
             </button>
-          ) : (
-            <button
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--ink-main)] px-4 py-2 font-mono text-xs uppercase tracking-wider text-white dark:bg-white dark:text-black font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
-              type="button"
-              onClick={onConnectSteam}
-              disabled={steamLoading}
-            >
-              {steamLoading ? <LoaderCircle size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
-              Conectar Steam
-            </button>
-          )}
+          </div>
         </div>
 
         {!isReadOnly && steamError && (

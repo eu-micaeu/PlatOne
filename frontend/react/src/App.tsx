@@ -18,6 +18,7 @@ import type {
   StatusFilter,
   SteamStatus,
   ViewMode,
+  XboxStatus,
 } from './types/app';
 
 const TOKEN_STORAGE_KEY = 'platone.auth.token';
@@ -26,6 +27,12 @@ const THEME_STORAGE_KEY = 'platone.theme.mode';
 const DEFAULT_STEAM_STATUS: SteamStatus = {
   connected: false,
   steamId: null,
+  linkedAt: null,
+};
+
+const DEFAULT_XBOX_STATUS: XboxStatus = {
+  connected: false,
+  gamertag: null,
   linkedAt: null,
 };
 
@@ -45,6 +52,7 @@ export default function App() {
   const [nicknameInput, setNicknameInput] = useState('');
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
 
   const [platinums, setPlatinums] = useState<Platinum[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -53,6 +61,9 @@ export default function App() {
   const [steamStatus, setSteamStatus] = useState<SteamStatus>(DEFAULT_STEAM_STATUS);
   const [steamLoading, setSteamLoading] = useState(false);
   const [steamError, setSteamError] = useState<string | null>(null);
+  const [xboxStatus, setXboxStatus] = useState<XboxStatus>(DEFAULT_XBOX_STATUS);
+  const [xboxLoading, setXboxLoading] = useState(false);
+  const [xboxError, setXboxError] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
@@ -188,6 +199,119 @@ export default function App() {
     }
   }, [authHeaders, authToken]);
 
+  const fetchXboxStatus = useCallback(async () => {
+    if (!authToken) {
+      setXboxStatus(DEFAULT_XBOX_STATUS);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/xbox/status', { headers: authHeaders });
+      if (!response.ok) {
+        throw new Error('Falha ao consultar status do Xbox.');
+      }
+
+      const payload = (await response.json()) as Partial<XboxStatus>;
+      setXboxStatus({
+        connected: Boolean(payload.connected),
+        gamertag: payload.gamertag ?? null,
+        linkedAt: payload.linkedAt ?? null,
+      });
+    } catch (error) {
+      console.error('Error fetching Xbox status:', error);
+      setXboxStatus(DEFAULT_XBOX_STATUS);
+    }
+  }, [authHeaders, authToken]);
+
+  const handleSyncXbox = useCallback(async () => {
+    if (!authToken || xboxLoading) {
+      return;
+    }
+
+    setXboxLoading(true);
+    setXboxError(null);
+
+    try {
+      const response = await fetch('/api/sync/xbox', {
+        method: 'POST',
+        headers: authHeaders,
+      });
+
+      if (!response.ok) {
+        const message = await readErrorMessage(response, 'Nao foi possivel sincronizar com o Xbox.');
+        throw new Error(message);
+      }
+
+      await fetchDashboardData();
+    } catch (error) {
+      console.error('Xbox sync failed:', error);
+      setXboxError(error instanceof Error ? error.message : 'Falha ao sincronizar o Xbox.');
+    } finally {
+      setXboxLoading(false);
+    }
+  }, [authHeaders, authToken, fetchDashboardData, xboxLoading]);
+
+  const handleConnectXbox = useCallback(
+    async (gamertag: string) => {
+      if (!authToken || !gamertag.trim() || xboxLoading) {
+        return;
+      }
+
+      setXboxLoading(true);
+      setXboxError(null);
+
+      try {
+        const response = await fetch('/api/xbox/connect', {
+          method: 'POST',
+          headers: { ...authHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gamertag: gamertag.trim() }),
+        });
+
+        if (!response.ok) {
+          const message = await readErrorMessage(response, 'Nao foi possivel conectar a conta Xbox.');
+          throw new Error(message);
+        }
+
+        await fetchXboxStatus();
+        await handleSyncXbox();
+      } catch (error) {
+        console.error('Xbox connect failed:', error);
+        setXboxError(error instanceof Error ? error.message : 'Falha ao conectar o Xbox.');
+      } finally {
+        setXboxLoading(false);
+      }
+    },
+    [authHeaders, authToken, fetchXboxStatus, handleSyncXbox, xboxLoading]
+  );
+
+  const handleDisconnectXbox = useCallback(async () => {
+    if (!authToken || xboxLoading) {
+      return;
+    }
+
+    setXboxLoading(true);
+    setXboxError(null);
+
+    try {
+      const response = await fetch('/api/xbox/disconnect', {
+        method: 'POST',
+        headers: authHeaders,
+      });
+
+      if (!response.ok) {
+        throw new Error('Nao foi possivel desconectar a conta Xbox.');
+      }
+
+      setXboxStatus(DEFAULT_XBOX_STATUS);
+      await fetchDashboardData();
+    } catch (error) {
+      console.error('Xbox disconnect failed:', error);
+      setXboxError(error instanceof Error ? error.message : 'Falha ao desconectar o Xbox.');
+    } finally {
+      setXboxLoading(false);
+    }
+  }, [authHeaders, authToken, fetchDashboardData, xboxLoading]);
+
   const fetchPublicProfileData = useCallback(async (profileName: string) => {
     const normalizedName = profileName.trim();
     if (!normalizedName) {
@@ -271,11 +395,6 @@ export default function App() {
       setSelectedGame(game);
       setAchievements([]);
       setAchievementsError(null);
-
-      if (game.platform.toLowerCase() !== 'steam') {
-        setAchievementsError('Detalhes de conquistas disponiveis apenas para jogos da Steam no momento.');
-        return;
-      }
 
       if (!game.externalId) {
         setAchievementsError('Nao foi possivel identificar o jogo para buscar as conquistas.');
@@ -409,7 +528,8 @@ export default function App() {
 
     fetchDashboardData();
     fetchSteamStatus();
-  }, [fetchDashboardData, fetchSteamStatus, isAuthenticated]);
+    fetchXboxStatus();
+  }, [fetchDashboardData, fetchSteamStatus, fetchXboxStatus, isAuthenticated]);
 
   useEffect(() => {
     if (!isPublicProfileRoute || !publicProfileName) {
@@ -576,10 +696,17 @@ export default function App() {
     setNicknameInput('');
     setEmailInput('');
     setPasswordInput('');
+    setConfirmPasswordInput('');
   };
 
   const handleAuthSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (authMode === 'register' && passwordInput !== confirmPasswordInput) {
+      setAuthError('As senhas não coincidem.');
+      return;
+    }
+
     setAuthSubmitting(true);
     setAuthError(null);
 
@@ -793,9 +920,11 @@ export default function App() {
         nicknameInput={nicknameInput}
         emailInput={emailInput}
         passwordInput={passwordInput}
+        confirmPasswordInput={confirmPasswordInput}
         onNicknameChange={setNicknameInput}
         onEmailChange={setEmailInput}
         onPasswordChange={setPasswordInput}
+        onConfirmPasswordChange={setConfirmPasswordInput}
         onModeChange={handleModeChange}
         onSubmit={handleAuthSubmit}
         themeMode={themeMode}
@@ -991,6 +1120,9 @@ export default function App() {
             user={user}
             steamStatus={steamStatus}
             steamLoading={steamLoading}
+            xboxStatus={xboxStatus}
+            xboxLoading={xboxLoading}
+            xboxError={xboxError}
             loadingData={loadingData}
             steamError={steamError}
             profileError={profileError}
@@ -998,6 +1130,9 @@ export default function App() {
             onSyncSteam={handleSyncSteam}
             onConnectSteam={handleConnectSteam}
             onDisconnectSteam={handleDisconnectSteam}
+            onConnectXbox={handleConnectXbox}
+            onDisconnectXbox={handleDisconnectXbox}
+            onSyncXbox={handleSyncXbox}
             onDeleteAccount={handleDeleteAccount}
             onUpdateSteamAPIKey={handleUpdateSteamAPIKey}
             formatDateTime={formatDateTime}

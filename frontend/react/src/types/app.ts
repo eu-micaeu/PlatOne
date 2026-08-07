@@ -47,8 +47,15 @@ export interface SteamStatus {
   linkedAt: string | null;
 }
 
+export interface XboxStatus {
+  connected: boolean;
+  gamertag: string | null;
+  linkedAt: string | null;
+}
+
 export type StatusFilter = 'all' | 'platinum' | 'progress';
 
 export type ViewMode = 'grid' | 'list';
 
 export type AuthMode = 'login' | 'register';
+
