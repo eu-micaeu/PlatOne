@@ -825,7 +825,7 @@ async function startServer() {
 
       const pinnedIds = rawIds
         .filter((id) => typeof id === "string" && id.trim().length > 0)
-        .slice(0, 5);
+        .slice(0, 3);
 
       await usersCollection.updateOne(
         { _id: userId },

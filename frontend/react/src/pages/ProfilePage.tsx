@@ -182,8 +182,8 @@ export default function ProfilePage({
 
       {/* Vitrine de Orgulho / Platinas em Destaque (Pinned Showcase) */}
       {(() => {
-        const pinnedIds = user?.pinnedPlatinumIds || [];
-        const pinnedGames = profilePlatinums.filter((g) => pinnedIds.includes(g.id));
+        const pinnedIds = (user?.pinnedPlatinumIds || []).slice(0, 3);
+        const pinnedGames = profilePlatinums.filter((g) => pinnedIds.includes(g.id)).slice(0, 3);
 
         if (isReadOnly && pinnedGames.length === 0) return null;
 
@@ -209,7 +209,7 @@ export default function ProfilePage({
                     </span>
                   </div>
                   <p className="text-xs text-[var(--text-soft)] mt-0.5">
-                    {isReadOnly ? 'Platinas destacadas com orgulho pelo jogador.' : 'Exiba até 5 das suas platinas mais difíceis ou marcantes.'}
+                    {isReadOnly ? 'Platinas destacadas com orgulho pelo jogador.' : 'Exiba até 3 das suas platinas mais difíceis ou marcantes.'}
                   </p>
                 </div>
               </div>
@@ -227,7 +227,7 @@ export default function ProfilePage({
             </div>
 
             {pinnedGames.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
                 {pinnedGames.map((game, index) => (
                   <div key={game.id} className="relative group">
                     <GameCard
@@ -251,7 +251,7 @@ export default function ProfilePage({
                 </div>
                 <p className="font-display text-sm font-bold text-[var(--text-main)]">Sua vitrine está vazia</p>
                 <p className="text-xs text-[var(--text-soft)] mt-1 max-w-md">
-                  Escolha até 5 das suas platinas mais desafiadoras ou marcantes para colocá-las em destaque no seu perfil público.
+                  Escolha até 3 das suas platinas mais desafiadoras ou marcantes para colocá-las em destaque no seu perfil público.
                 </p>
                 {!isReadOnly && onOpenPinnedModal && (
                   <button

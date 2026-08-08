@@ -43,8 +43,8 @@ export default function PinnedPlatinumsModal({
     if (selectedIds.includes(gameId)) {
       setSelectedIds((prev) => prev.filter((id) => id !== gameId));
     } else {
-      if (selectedIds.length >= 5) {
-        setError('Você só pode destacar até 5 platinas.');
+      if (selectedIds.length >= 3) {
+        setError('Você só pode destacar até 3 platinas.');
         setTimeout(() => setError(null), 3000);
         return;
       }
@@ -106,7 +106,7 @@ export default function PinnedPlatinumsModal({
                   Vitrine de Platinas (Destaques)
                 </h2>
                 <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-soft)]">
-                  Selecione até 5 platinas para exibir no topo do seu perfil ({selectedIds.length}/5)
+                  Selecione até 3 platinas para exibir no topo do seu perfil ({selectedIds.length}/3)
                 </p>
               </div>
             </div>
@@ -200,7 +200,7 @@ export default function PinnedPlatinumsModal({
           {/* Footer */}
           <div className="flex items-center justify-between border-t border-black/10 dark:border-white/10 p-4 bg-black/5 dark:bg-white/5">
             <span className="font-mono text-xs text-[var(--text-soft)]">
-              {selectedIds.length} de 5 selecionadas
+              {selectedIds.length} de 3 selecionadas
             </span>
 
             <div className="flex items-center gap-2">
