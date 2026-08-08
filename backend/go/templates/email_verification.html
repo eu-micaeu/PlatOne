@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificação de E-mail - PlatOne</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+    
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+    table { border-collapse: collapse !important; }
+    
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      background-color: #000000;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #ffffff;
+    }
+
+    @media screen and (max-width: 520px) {
+      .container { width: 100% !important; padding: 12px !important; }
+      .card { padding: 32px 20px !important; }
+      .otp-code { font-size: 26px !important; letter-spacing: 6px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 48px 12px; background-color: #000000; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
+
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td align="center">
+        
+        <table role="presentation" class="container" border="0" cellpadding="0" cellspacing="0" width="440" style="max-width: 440px; width: 100%;">
+          
+          <!-- Header com Logo Branca Oficial -->
+          <tr>
+            <td style="padding-bottom: 24px;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="vertical-align: middle;">
+                    <svg width="32" height="32" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+                      <path fill-rule="evenodd" clip-rule="evenodd" d="M78.5 16.6667C81.4377 16.6676 84.323 17.445 86.8635 18.9202C89.404 20.3953 91.5095 22.5158 92.9666 25.0667L100 37.3667L107.033 25.0667C108.49 22.5158 110.596 20.3953 113.136 18.9202C115.677 17.445 118.562 16.6676 121.5 16.6667H159.483C161.673 16.6659 163.824 17.2404 165.722 18.3325C167.62 19.4247 169.198 20.9963 170.297 22.8899C171.397 24.7835 171.98 26.9327 171.988 29.1223C171.995 31.312 171.428 33.4653 170.342 35.3667L142.158 84.6833C150.056 92.9413 155.354 103.337 157.395 114.579C159.436 125.822 158.131 137.416 153.64 147.924C149.15 158.431 141.673 167.388 132.137 173.683C122.601 179.978 111.426 183.334 100 183.334C88.5736 183.334 77.3988 179.978 67.8629 173.683C58.3269 167.388 50.8497 158.431 46.3595 147.924C41.8693 137.416 40.5637 125.822 42.605 114.579C44.6462 103.337 49.9443 92.9413 57.8416 84.6833L29.6583 35.3667C28.5722 33.4653 28.0046 31.312 28.0124 29.1223C28.0202 26.9327 28.603 24.7835 29.7025 22.8899C30.8021 20.9963 32.3797 19.4247 34.2776 18.3325C36.1755 17.2404 38.3269 16.6659 40.5166 16.6667H78.5ZM100 83.3333C88.9493 83.3333 78.3512 87.7232 70.5372 95.5372C62.7232 103.351 58.3333 113.949 58.3333 125C58.3333 136.051 62.7232 146.649 70.5372 154.463C78.3512 162.277 88.9493 166.667 100 166.667C111.051 166.667 121.649 162.277 129.463 154.463C137.277 146.649 141.667 136.051 141.667 125C141.667 113.949 137.277 103.351 129.463 95.5372C121.649 87.7232 111.051 83.3333 100 83.3333ZM100 108.333C104.42 108.333 108.659 110.089 111.785 113.215C114.911 116.34 116.667 120.58 116.667 125C116.667 129.42 114.911 133.659 111.785 136.785C108.659 139.911 104.42 141.667 100 141.667C95.5797 141.667 91.3405 139.911 88.2149 136.785C85.0892 133.659 83.3333 129.42 83.3333 125C83.3333 120.58 85.0892 116.34 88.2149 113.215C91.3405 110.089 95.5797 108.333 100 108.333ZM152.308 33.3333H121.5L109.6 54.1667L118.433 69.6417C122.106 70.8639 125.592 72.4194 128.892 74.3083L152.308 33.3333ZM78.5 33.3333H47.6916L71.1083 74.3083C79.1933 69.69 88.2713 67.0861 97.575 66.7167L78.5 33.3333Z" fill="#ffffff"/>
+                    </svg>
+                  </td>
+                  <td style="padding-left: 10px; vertical-align: middle;">
+                    <span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: -0.02em;">
+                      PlatOne
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Cartão Monocromático Preto -->
+          <tr>
+            <td class="card" style="background-color: #0a0a0a; border: 1px solid #27272a; border-radius: 12px; padding: 36px 32px;">
+              
+              <!-- Tag Monocromática -->
+              <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #a1a1aa; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 16px;">
+                // CONFIRMAÇÃO DE E-MAIL
+              </div>
+
+              <h1 style="font-family: 'Space Grotesk', sans-serif; color: #ffffff; font-size: 20px; font-weight: 600; margin: 0 0 12px 0; letter-spacing: -0.01em;">
+                Código de verificação
+              </h1>
+
+              <p style="color: #a1a1aa; font-size: 14px; line-height: 1.5; margin: 0 0 28px 0;">
+                Insira o código abaixo no aplicativo para confirmar a propriedade deste e-mail.
+              </p>
+
+              <!-- Bloco OTP Monocromático em Branco -->
+              <div style="background-color: #000000; border: 1px solid #27272a; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 20px;">
+                <div class="otp-code" style="font-family: 'IBM Plex Mono', monospace; font-size: 32px; font-weight: 600; color: #ffffff; letter-spacing: 8px; padding-left: 8px;">
+                  {{.Code}}
+                </div>
+              </div>
+
+              <!-- Expiração Monocromática -->
+              <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #71717a; margin-bottom: 28px;">
+                Este código expira em <span style="color: #a1a1aa;">15 minutos</span>.
+              </div>
+
+              <div style="height: 1px; background-color: #27272a; margin-bottom: 20px;"></div>
+
+              <p style="color: #71717a; font-size: 12px; line-height: 1.4; margin: 0;">
+                Se você não solicitou este código, nenhuma ação é necessária.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Footer Monocromático -->
+          <tr>
+            <td style="padding-top: 24px;">
+              <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #52525b;">
+                PlatOne &copy; 2026
+              </span>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

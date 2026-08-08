@@ -667,12 +667,14 @@ async function startServer() {
   const platinumsCollection = db.collection("platinums");
   const friendsCollection = db.collection<FriendRecord>("friends");
   const chatMessagesCollection = db.collection<ChatMessageRecord>("chat_messages");
+  const emailVerificationsCollection = db.collection("email_verifications");
 
   await Promise.all([
     usersCollection.createIndex({ email: 1 }, { unique: true }),
     sessionsCollection.createIndex({ token: 1 }, { unique: true }),
     steamStatesCollection.createIndex({ state: 1 }, { unique: true }),
     steamStatesCollection.createIndex({ createdAt: 1 }, { expireAfterSeconds: STEAM_STATE_TTL_SECONDS }),
+    emailVerificationsCollection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
   ]);
 
   await usersCollection.updateOne(
@@ -693,6 +695,188 @@ async function startServer() {
   const authMiddleware = buildAuthMiddleware(usersCollection, sessionsCollection);
 
   app.use(express.json());
+
+  // Helper para disparo real de e-mail via Resend REST API
+  const sendEmailViaResend = async (toEmail: string, code: string) => {
+    const resendApiKey = (process.env.RESEND_API_KEY || "").trim();
+    const fromAddress = (process.env.SMTP_FROM || "PlatOne <no-reply@platone.xyz>").trim();
+
+    if (!resendApiKey) {
+      throw new Error("Nenhuma chave RESEND_API_KEY foi configurada no arquivo .env");
+    }
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificação de E-mail - PlatOne</title>
+</head>
+<body style="margin: 0; padding: 48px 12px; background-color: #000000; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color: #ffffff;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td align="center">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="440" style="max-width: 440px; width: 100%;">
+          <tr>
+            <td style="padding-bottom: 24px;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="vertical-align: middle;">
+                    <svg width="32" height="32" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+                      <path fill-rule="evenodd" clip-rule="evenodd" d="M78.5 16.6667C81.4377 16.6676 84.323 17.445 86.8635 18.9202C89.404 20.3953 91.5095 22.5158 92.9666 25.0667L100 37.3667L107.033 25.0667C108.49 22.5158 110.596 20.3953 113.136 18.9202C115.677 17.445 118.562 16.6676 121.5 16.6667H159.483C161.673 16.6659 163.824 17.2404 165.722 18.3325C167.62 19.4247 169.198 20.9963 170.297 22.8899C171.397 24.7835 171.98 26.9327 171.988 29.1223C171.995 31.312 171.428 33.4653 170.342 35.3667L142.158 84.6833C150.056 92.9413 155.354 103.337 157.395 114.579C159.436 125.822 158.131 137.416 153.64 147.924C149.15 158.431 141.673 167.388 132.137 173.683C122.601 179.978 111.426 183.334 100 183.334C88.5736 183.334 77.3988 179.978 67.8629 173.683C58.3269 167.388 50.8497 158.431 46.3595 147.924C41.8693 137.416 40.5637 125.822 42.605 114.579C44.6462 103.337 49.9443 92.9413 57.8416 84.6833L29.6583 35.3667C28.5722 33.4653 28.0046 31.312 28.0124 29.1223C28.0202 26.9327 28.603 24.7835 29.7025 22.8899C30.8021 20.9963 32.3797 19.4247 34.2776 18.3325C36.1755 17.2404 38.3269 16.6659 40.5166 16.6667H78.5ZM100 83.3333C88.9493 83.3333 78.3512 87.7232 70.5372 95.5372C62.7232 103.351 58.3333 113.949 58.3333 125C58.3333 136.051 62.7232 146.649 70.5372 154.463C78.3512 162.277 88.9493 166.667 100 166.667C111.051 166.667 121.649 162.277 129.463 154.463C137.277 146.649 141.667 136.051 141.667 125C141.667 113.949 137.277 103.351 129.463 95.5372C121.649 87.7232 111.051 83.3333 100 83.3333ZM100 108.333C104.42 108.333 108.659 110.089 111.785 113.215C114.911 116.34 116.667 120.58 116.667 125C116.667 129.42 114.911 133.659 111.785 136.785C108.659 139.911 104.42 141.667 100 141.667C95.5797 141.667 91.3405 139.911 88.2149 136.785C85.0892 133.659 83.3333 129.42 83.3333 125C83.3333 120.58 85.0892 116.34 88.2149 113.215C91.3405 110.089 95.5797 108.333 100 108.333ZM152.308 33.3333H121.5L109.6 54.1667L118.433 69.6417C122.106 70.8639 125.592 72.4194 128.892 74.3083L152.308 33.3333ZM78.5 33.3333H47.6916L71.1083 74.3083C79.1933 69.69 88.2713 67.0861 97.575 66.7167L78.5 33.3333Z" fill="#ffffff"/>
+                    </svg>
+                  </td>
+                  <td style="padding-left: 10px; vertical-align: middle;">
+                    <span style="font-family: sans-serif; font-size: 20px; font-weight: 700; color: #ffffff;">
+                      PlatOne
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #0a0a0a; border: 1px solid #27272a; border-radius: 12px; padding: 36px 32px;">
+              <div style="font-family: monospace; font-size: 10px; color: #a1a1aa; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 16px;">
+                // CONFIRMAÇÃO DE E-MAIL
+              </div>
+              <h1 style="font-family: sans-serif; color: #ffffff; font-size: 20px; font-weight: 600; margin: 0 0 12px 0;">
+                Código de verificação
+              </h1>
+              <p style="color: #a1a1aa; font-size: 14px; line-height: 1.5; margin: 0 0 28px 0;">
+                Insira o código abaixo para confirmar a propriedade deste e-mail.
+              </p>
+              <div style="background-color: #000000; border: 1px solid #27272a; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 20px;">
+                <div style="font-family: monospace; font-size: 32px; font-weight: 600; color: #ffffff; letter-spacing: 8px; padding-left: 8px;">
+                  ${code}
+                </div>
+              </div>
+              <div style="font-family: monospace; font-size: 11px; color: #71717a; margin-bottom: 28px;">
+                Este código expira em <span style="color: #a1a1aa;">15 minutos</span>.
+              </div>
+              <div style="height: 1px; background-color: #27272a; margin-bottom: 20px;"></div>
+              <p style="color: #71717a; font-size: 12px; line-height: 1.4; margin: 0;">
+                Se você não solicitou este código, nenhuma ação é necessária.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding-top: 24px;">
+              <span style="font-family: monospace; font-size: 11px; color: #52525b;">
+                PlatOne &copy; 2026
+              </span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `;
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: fromAddress,
+        to: [toEmail],
+        subject: "Código de Verificação - PlatOne",
+        html: htmlContent,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Falha no Resend (status ${response.status}): ${errText}`);
+    }
+
+    return await response.json();
+  };
+
+  // Endpoint para solicitar o envio do código por e-mail
+  app.post("/api/auth/send-verification", async (req, res) => {
+    const rawEmail = String(req.body?.email ?? "").trim().toLowerCase();
+    if (!rawEmail || !rawEmail.includes("@")) {
+      res.status(400).json({ error: "Endereço de e-mail inválido." });
+      return;
+    }
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    try {
+      await emailVerificationsCollection.updateOne(
+        { email: rawEmail },
+        {
+          $set: {
+            email: rawEmail,
+            code,
+            attempts: 0,
+            expiresAt,
+            createdAt: new Date(),
+          },
+        },
+        { upsert: true }
+      );
+
+      await sendEmailViaResend(rawEmail, code);
+
+      res.json({ message: "Código de verificação enviado com sucesso via Resend!" });
+    } catch (error: any) {
+      console.error("Erro ao enviar e-mail de verificação:", error);
+      res.status(500).json({ error: error?.message || "Erro ao enviar e-mail de verificação." });
+    }
+  });
+
+  // Endpoint para validar o código de 6 dígitos
+  app.post("/api/auth/verify-code", async (req, res) => {
+    const rawEmail = String(req.body?.email ?? "").trim().toLowerCase();
+    const code = String(req.body?.code ?? "").trim();
+
+    if (!rawEmail || !code) {
+      res.status(400).json({ error: "E-mail e código são obrigatórios." });
+      return;
+    }
+
+    try {
+      const record = await emailVerificationsCollection.findOne({ email: rawEmail });
+      if (!record) {
+        res.status(400).json({ error: "Nenhum código pendente encontrado para este e-mail." });
+        return;
+      }
+
+      if (new Date() > new Date(record.expiresAt)) {
+        await emailVerificationsCollection.deleteOne({ email: rawEmail });
+        res.status(401).json({ error: "O código de verificação expirou. Solicite um novo código." });
+        return;
+      }
+
+      if (record.attempts >= 5) {
+        await emailVerificationsCollection.deleteOne({ email: rawEmail });
+        res.status(429).json({ error: "Número máximo de tentativas excedido. Solicite um novo código." });
+        return;
+      }
+
+      if (record.code !== code) {
+        await emailVerificationsCollection.updateOne({ email: rawEmail }, { $inc: { attempts: 1 } });
+        res.status(401).json({ error: "Código de verificação incorreto." });
+        return;
+      }
+
+      await usersCollection.updateOne({ email: rawEmail }, { $set: { isEmailVerified: true } });
+      await emailVerificationsCollection.deleteOne({ email: rawEmail });
+
+      res.json({ message: "E-mail verificado com sucesso!" });
+    } catch (error) {
+      console.error("Erro ao verificar código:", error);
+      res.status(500).json({ error: "Erro ao verificar código." });
+    }
+  });
 
   app.post("/api/auth/register", async (req, res) => {
     const nickname = String(req.body?.nickname ?? req.body?.name ?? "").trim();

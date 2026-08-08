@@ -52,6 +52,7 @@ func main() {
 
 	db := client.Database("platone")
 	svc := service.NewPlatService(db)
+	emailSvc := service.NewEmailService()
 
 	mux := http.NewServeMux()
 
@@ -179,7 +180,107 @@ func main() {
 		})
 	})
 
+	// Envia o código de verificação por e-mail (OTP)
+	mux.HandleFunc("POST /api/auth/send-verification", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Email string `json:"email"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || !service.ValidateEmailFormat(req.Email) {
+			http.Error(w, "Endereço de e-mail inválido ou mal formatado", http.StatusBadRequest)
+			return
+		}
+
+		code, err := service.GenerateOTPCode()
+		if err != nil {
+			http.Error(w, "Erro ao gerar código de segurança", http.StatusInternalServerError)
+			return
+		}
+
+		verification := models.EmailVerification{
+			Email:     req.Email,
+			Code:      code,
+			Attempts:  0,
+			ExpiresAt: time.Now().Add(15 * time.Minute),
+			CreatedAt: time.Now(),
+		}
+
+		coll := db.Collection("email_verifications")
+		opts := options.Update().SetUpsert(true)
+		filter := bson.M{"email": req.Email}
+		update := bson.M{"$set": verification}
+
+		if _, err := coll.UpdateOne(r.Context(), filter, update, opts); err != nil {
+			http.Error(w, "Erro ao registrar código de verificação", http.StatusInternalServerError)
+			return
+		}
+
+		go func() {
+			if err := emailSvc.SendVerificationOTP(req.Email, code); err != nil {
+				log.Printf("Erro ao enviar e-mail OTP para %s: %v", req.Email, err)
+			}
+		}()
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Código de verificação enviado com sucesso!",
+		})
+	})
+
+	// Valida o código informado pelo usuário
+	mux.HandleFunc("POST /api/auth/verify-code", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Email string `json:"email"`
+			Code  string `json:"code"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Email == "" || req.Code == "" {
+			http.Error(w, "E-mail e código são obrigatórios", http.StatusBadRequest)
+			return
+		}
+
+		coll := db.Collection("email_verifications")
+		var v models.EmailVerification
+		err := coll.FindOne(r.Context(), bson.M{"email": req.Email}).Decode(&v)
+		if err != nil {
+			http.Error(w, "Nenhum código pendente encontrado para este e-mail", http.StatusBadRequest)
+			return
+		}
+
+		// Checa se o código expirou (15 min)
+		if time.Now().After(v.ExpiresAt) {
+			coll.DeleteOne(r.Context(), bson.M{"email": req.Email})
+			http.Error(w, "O código de verificação expirou. Solicite um novo código.", http.StatusUnauthorized)
+			return
+		}
+
+		// Limite de tentativas contra ataques de força bruta
+		if v.Attempts >= 5 {
+			coll.DeleteOne(r.Context(), bson.M{"email": req.Email})
+			http.Error(w, "Número máximo de tentativas excedido. Solicite um novo código.", http.StatusTooManyRequests)
+			return
+		}
+
+		// Compara o código de segurança
+		if v.Code != req.Code {
+			coll.UpdateOne(r.Context(), bson.M{"email": req.Email}, bson.M{"$inc": bson.M{"attempts": 1}})
+			http.Error(w, "Código de verificação incorreto", http.StatusUnauthorized)
+			return
+		}
+
+		// Sucesso: atualiza status do usuário e remove o registro temporário
+		usersColl := db.Collection("users")
+		usersColl.UpdateOne(r.Context(), bson.M{"email": req.Email}, bson.M{"$set": bson.M{"is_email_verified": true}})
+		coll.DeleteOne(r.Context(), bson.M{"email": req.Email})
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "E-mail verificado com sucesso!",
+		})
+	})
+
 	listenAddr := ":8085"
+
 	log.Printf("Serviço PlatOne iniciado com sucesso na porta %s", listenAddr)
 	log.Fatal(http.ListenAndServe(listenAddr, corsMiddleware(mux)))
 }

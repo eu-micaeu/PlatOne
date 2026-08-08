@@ -8,13 +8,25 @@ import (
 
 // User representa o jogador e suas conexões
 type User struct {
-	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Username    string             `bson:"username" json:"username"`
-	Email       string             `bson:"email" json:"email"`
-	Platforms   PlatformAccounts   `bson:"platforms" json:"platforms"`
-	SteamAPIKey string             `bson:"steam_api_key,omitempty" json:"steam_api_key,omitempty"`
-	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
+	ID              primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Username        string             `bson:"username" json:"username"`
+	Email           string             `bson:"email" json:"email"`
+	IsEmailVerified bool               `bson:"is_email_verified" json:"is_email_verified"`
+	Platforms       PlatformAccounts   `bson:"platforms" json:"platforms"`
+	SteamAPIKey     string             `bson:"steam_api_key,omitempty" json:"steam_api_key,omitempty"`
+	CreatedAt       time.Time          `bson:"created_at" json:"created_at"`
 }
+
+// EmailVerification representa o registro temporário de verificação por OTP
+type EmailVerification struct {
+	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Email     string             `bson:"email" json:"email"`
+	Code      string             `bson:"code" json:"code"`
+	Attempts  int                `bson:"attempts" json:"attempts"`
+	ExpiresAt time.Time          `bson:"expires_at" json:"expires_at"`
+	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
+}
+
 
 type PlatformAccounts struct {
 	Steam *SteamAccount `bson:"steam,omitempty" json:"steam,omitempty"`

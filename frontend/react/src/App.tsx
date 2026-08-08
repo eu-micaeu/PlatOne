@@ -12,6 +12,7 @@ import ConfirmLogoutModal from './components/ConfirmLogoutModal';
 import CookieModal from './components/CookieModal';
 import AvatarModal from './components/AvatarModal';
 import PinnedPlatinumsModal from './components/PinnedPlatinumsModal';
+import EmailVerificationModal from './components/EmailVerificationModal';
 import FriendsChatSidebar from './components/FriendsChatSidebar';
 import type {
   Achievement,
@@ -75,6 +76,9 @@ export default function App() {
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isPinnedModalOpen, setIsPinnedModalOpen] = useState(false);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [pendingAuthResult, setPendingAuthResult] = useState<{ token: string; user: AuthUser } | null>(null);
   const [isFriendsSidebarOpen, setIsFriendsSidebarOpen] = useState(false);
   const [incomingRequestsCount, setIncomingRequestsCount] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
@@ -796,6 +800,25 @@ export default function App() {
       }
 
       const result = (await response.json()) as AuthResponse;
+
+      if (authMode === 'register') {
+        const targetEmail = emailInput.trim();
+        try {
+          await fetch('/api/auth/send-verification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: targetEmail }),
+          });
+        } catch (sendErr) {
+          console.error('Erro ao enviar e-mail de verificação:', sendErr);
+        }
+
+        setPendingAuthResult({ token: result.token, user: result.user });
+        setVerificationEmail(targetEmail);
+        setIsVerificationModalOpen(true);
+        return;
+      }
+
       setSessionToken(result.token, rememberMe);
       setUser(result.user);
       resetAuthForm();
@@ -1024,6 +1047,30 @@ export default function App() {
           onSubmit={handleAuthSubmit}
           themeMode={themeMode}
           onToggleTheme={toggleTheme}
+        />
+        <EmailVerificationModal
+          isOpen={isVerificationModalOpen}
+          email={verificationEmail || emailInput || ''}
+          onClose={() => {
+            setIsVerificationModalOpen(false);
+            if (pendingAuthResult) {
+              setSessionToken(pendingAuthResult.token, rememberMe);
+              setUser(pendingAuthResult.user);
+              setPendingAuthResult(null);
+              resetAuthForm();
+              navigateTo('/home', true);
+            }
+          }}
+          onSuccess={() => {
+            setIsVerificationModalOpen(false);
+            if (pendingAuthResult) {
+              setSessionToken(pendingAuthResult.token, rememberMe);
+              setUser({ ...pendingAuthResult.user });
+              setPendingAuthResult(null);
+              resetAuthForm();
+              navigateTo('/home', true);
+            }
+          }}
         />
         <CookieModal />
       </>
@@ -1386,6 +1433,32 @@ export default function App() {
         isLoggingOut={isLoggingOut}
         onClose={() => setShowLogoutModal(false)}
         onConfirm={handleLogout}
+      />
+      <EmailVerificationModal
+        isOpen={isVerificationModalOpen}
+        email={verificationEmail || user?.email || ''}
+        onClose={() => {
+          setIsVerificationModalOpen(false);
+          if (pendingAuthResult) {
+            setSessionToken(pendingAuthResult.token, rememberMe);
+            setUser(pendingAuthResult.user);
+            setPendingAuthResult(null);
+            resetAuthForm();
+            navigateTo('/home', true);
+          }
+        }}
+        onSuccess={() => {
+          setIsVerificationModalOpen(false);
+          if (pendingAuthResult) {
+            setSessionToken(pendingAuthResult.token, rememberMe);
+            setUser({ ...pendingAuthResult.user });
+            setPendingAuthResult(null);
+            resetAuthForm();
+            navigateTo('/home', true);
+          } else if (user) {
+            setUser({ ...user });
+          }
+        }}
       />
       <AvatarModal
         isOpen={isAvatarModalOpen}

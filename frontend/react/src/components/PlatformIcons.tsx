@@ -268,10 +268,7 @@ export function PlatformStatusCards() {
           <div>
             <div className="flex items-center gap-1.5">
               <p className="text-xs font-semibold text-[var(--text-main)]">Steam</p>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-1.5 py-0.2 font-mono text-[9px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Conexão Pronta
-              </span>
             </div>
             <p className="text-[10px] text-[var(--text-soft)]">Já é possível conectar e sincronizar conquistas</p>
           </div>
@@ -287,10 +284,7 @@ export function PlatformStatusCards() {
           <div>
             <div className="flex items-center gap-1.5">
               <p className="text-xs font-semibold text-[var(--text-main)]">Xbox Network</p>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-1.5 py-0.2 font-mono text-[9px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Conexão Pronta
-              </span>
             </div>
             <p className="text-[10px] text-[var(--text-soft)]">Sincronização de Gamerscore e conquistas</p>
           </div>

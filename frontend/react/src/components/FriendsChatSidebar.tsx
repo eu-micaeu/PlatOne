@@ -619,7 +619,7 @@ export default function FriendsChatSidebar({
                           </p>
                           <p className="text-[10px] text-[var(--text-soft)] truncate">
                             {friend.status === 'ingame'
-                              ? `🎮 ${friend.currentGame || 'Em Jogo'}`
+                              ? `${friend.currentGame || 'Em Jogo'}`
                               : friend.status === 'online'
                               ? '🟢 Online'
                               : `⚪ ${friend.lastSeen || 'Offline'}`}
@@ -795,14 +795,14 @@ export default function FriendsChatSidebar({
                   <div className="flex items-center gap-1.5 overflow-x-auto px-3 py-1.5 border-t border-black/10 dark:border-white/10 scrollbar-none">
                     <button
                       type="button"
-                      onClick={() => setMessageInput('Bora jogar junto hoje? 🎮')}
+                      onClick={() => setMessageInput('Bora jogar junto hoje?')}
                       className="whitespace-nowrap rounded-full border border-black/10 dark:border-white/10 px-2.5 py-1 font-mono text-[9px] uppercase tracking-wider text-[var(--text-soft)] hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
                     >
-                      Bora jogar? 🎮
+                      Bora jogar?
                     </button>
                     <button
                       type="button"
-                      onClick={() => setMessageInput('Platinei mais um jogo! 🏆')}
+                      onClick={() => setMessageInput('Platinei mais um jogo!')}
                       className="whitespace-nowrap rounded-full border border-black/10 dark:border-white/10 px-2.5 py-1 font-mono text-[9px] uppercase tracking-wider text-[var(--text-soft)] hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
                     >
                       Platinei mais um! 🏆
