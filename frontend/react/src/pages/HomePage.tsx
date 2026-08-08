@@ -1,17 +1,11 @@
 import { type SyntheticEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  CheckCircle2,
-  Clock3,
-  ExternalLink,
-  Filter,
   Gamepad2,
   LayoutGrid,
   List as ListIcon,
   RefreshCw,
   Search,
-  Sparkles,
-  Trophy,
 } from 'lucide-react';
 
 import type { Platinum, Stats, StatusFilter, ViewMode } from '../types/app';
@@ -84,7 +78,7 @@ export default function HomePage({
               Painel de Conquistas
             </h1>
             <p className="mt-1 text-sm text-[var(--text-soft)]">
-              Acompanhe seu progresso e titulos platinados sincronizados.
+              Acompanhe seu progresso e títulos platinados sincronizados.
             </p>
           </div>
 
@@ -101,7 +95,7 @@ export default function HomePage({
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-4 border-t border-black/10 dark:border-white/10 pt-6 sm:grid-cols-4">
-          <StatTile label="Platinas" value={stats?.totalPlatinums ?? 0} helper="Jogos 100% concluidos" />
+          <StatTile label="Platinas" value={stats?.totalPlatinums ?? 0} helper="Jogos 100% concluídos" />
           <StatTile label="Biblioteca" value={stats?.totalGames ?? 0} helper="Jogos sincronizados" />
         </div>
       </motion.section>
@@ -257,15 +251,3 @@ function StatTile({
     </div>
   );
 }
-
-type GameCardProps = {
-  key?: string;
-  game: Platinum;
-  viewMode: ViewMode;
-  order: number;
-  onOpenDetails: (game: Platinum) => void;
-  handleGameImageError: (event: SyntheticEvent<HTMLImageElement>) => void;
-  formatDate: (value: string) => string;
-};
-
-

@@ -1374,6 +1374,84 @@ async function startServer() {
     }
   });
 
+  app.get("/api/friends/activity-feed", authMiddleware, async (req: AuthedRequest, res) => {
+    try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ error: "Nao autenticado" });
+        return;
+      }
+
+      const friendLinks = await friendsCollection
+        .find({
+          status: "accepted",
+          $or: [{ requesterId: userId }, { recipientId: userId }],
+        })
+        .toArray();
+
+      const feedItems: Array<{
+        id: string;
+        friendId: string;
+        friendName: string;
+        friendAvatarUrl: string | null;
+        gameTitle: string;
+        gameIcon: string;
+        platform: string;
+        unlockedCount: number;
+        totalAchievements: number;
+        isPlatinum: boolean;
+        timestamp: string;
+      }> = [];
+
+      for (const link of friendLinks) {
+        const friendObjId = link.requesterId.equals(userId) ? link.recipientId : link.requesterId;
+        const friend = await usersCollection.findOne({ _id: friendObjId });
+        if (!friend) continue;
+
+        const friendIdStr = friend._id.toHexString();
+
+        const userGames = await platinumsCollection
+          .find({
+            $or: [
+              { "metadata.user_id": friendIdStr },
+              { "metadata.platform_user_id": friend.steam?.steamId },
+              { "metadata.platform_user_id": friend.xbox?.gamertag },
+            ],
+          })
+          .sort({ validation_date: -1 })
+          .limit(5)
+          .toArray();
+
+        for (const g of userGames) {
+          const unlockedCount = Number(g.unlocked_count ?? g.unlocked ?? 0);
+          const totalAchievements = Number(g.total_achievements ?? g.total ?? 0);
+          const isPlatinum = Boolean(g.is_platinum ?? (unlockedCount >= totalAchievements && totalAchievements > 0));
+
+          feedItems.push({
+            id: `feed_${friendIdStr}_${g._id.toHexString()}`,
+            friendId: friendIdStr,
+            friendName: friend.name,
+            friendAvatarUrl: friend.avatarUrl || null,
+            gameTitle: g.title || "Jogo Desconhecido",
+            gameIcon: g.icon || g.metadata?.icon || "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=500&q=80",
+            platform: g.platform || "PC",
+            unlockedCount,
+            totalAchievements,
+            isPlatinum,
+            timestamp: g.validation_date ? new Date(g.validation_date).toISOString() : new Date().toISOString(),
+          });
+        }
+      }
+
+      feedItems.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      res.json({ feed: feedItems.slice(0, 20) });
+    } catch (error) {
+      console.error("Activity feed error:", error);
+      res.status(500).json({ error: "Erro ao carregar feed de conquistas dos amigos." });
+    }
+  });
+
   app.get("/api/chat/:friendId", authMiddleware, async (req: AuthedRequest, res) => {
     try {
       const userIdStr = req.user?._id.toHexString();

@@ -99,4 +99,20 @@ export interface UnreadMessageNotification {
   createdAt: string;
 }
 
+export interface FriendActivityItem {
+  id: string;
+  friendId: string;
+  friendName: string;
+  friendAvatarUrl?: string | null;
+  gameTitle: string;
+  gameIcon: string;
+  platform: string;
+  unlockedCount: number;
+  totalAchievements: number;
+  isPlatinum: boolean;
+  timestamp: string;
+  likesCount?: number;
+  userLiked?: boolean;
+}
+
 

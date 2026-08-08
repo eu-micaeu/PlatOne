@@ -1,9 +1,9 @@
-import { House, LogOut, Moon, Settings2, Sun, type LucideIcon, UserRound, Users } from 'lucide-react';
+import { House, LogOut, Moon, Settings2, Sparkles, Sun, type LucideIcon, UserRound, Users } from 'lucide-react';
 
 import BrandLogo from './BrandLogo';
 import HeaderNotificationsDropdown from './HeaderNotificationsDropdown';
 
-export type AppTopBarPath = '/home' | '/profile' | '/settings';
+export type AppTopBarPath = '/home' | '/feed' | '/profile' | '/settings';
 
 type AppTopBarProps = {
   userName?: string;
@@ -127,6 +127,22 @@ export default function AppTopBar({
             >
               <House size={15} />
               <span className="sr-only">Home</span>
+            </button>
+
+            <button
+              className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+                activePath === '/feed'
+                  ? 'bg-[var(--ink-main)] text-white dark:bg-white dark:text-black font-semibold'
+                  : 'border border-black/10 dark:border-white/10 text-[var(--text-soft)] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[var(--text-main)]'
+              }`}
+              type="button"
+              onClick={() => onNavigate('/feed')}
+              disabled={activePath === '/feed'}
+              aria-label="Feed dos Amigos"
+              title="Feed dos Amigos"
+            >
+              <Sparkles size={15} />
+              <span className="sr-only">Feed dos Amigos</span>
             </button>
 
             <button

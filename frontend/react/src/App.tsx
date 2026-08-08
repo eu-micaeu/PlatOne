@@ -8,6 +8,7 @@ import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
+import FeedPage from './pages/FeedPage';
 import ConfirmLogoutModal from './components/ConfirmLogoutModal';
 import ConfirmDeleteAccountModal from './components/ConfirmDeleteAccountModal';
 import CookieModal from './components/CookieModal';
@@ -44,7 +45,7 @@ const DEFAULT_XBOX_STATUS: XboxStatus = {
   linkedAt: null,
 };
 
-type AppRoute = '/' | '/home' | '/login' | '/register' | '/profile' | '/settings' | `/profile/${string}`;
+type AppRoute = '/' | '/home' | '/feed' | '/login' | '/register' | '/profile' | '/settings' | `/profile/${string}`;
 type ThemeMode = 'light' | 'dark';
 
 export default function App() {
@@ -118,6 +119,7 @@ export default function App() {
   const isOwnProfileRoute = routePath === '/profile';
   const isProfileRoute = isOwnProfileRoute || isPublicProfileRoute;
   const isSettingsRoute = routePath === '/settings';
+  const isFeedRoute = routePath === '/feed';
   const isLoginRoute = routePath === '/' || routePath === '/login';
   const isRegisterRoute = routePath === '/register';
   const isPublicRoute = isLoginRoute || isRegisterRoute || isPublicProfileRoute;
@@ -1043,11 +1045,13 @@ export default function App() {
 
   const activeTopBarPath = isHomeRoute
     ? '/home'
-    : isOwnProfileRoute
-      ? '/profile'
-      : isSettingsRoute
-        ? '/settings'
-        : null;
+    : isFeedRoute
+      ? '/feed'
+      : isOwnProfileRoute
+        ? '/profile'
+        : isSettingsRoute
+          ? '/settings'
+          : null;
 
   if (authChecking) {
     return (
@@ -1308,6 +1312,11 @@ export default function App() {
             onUpdateSteamAPIKey={handleUpdateSteamAPIKey}
             formatDateTime={formatDateTime}
             onOpenAvatarModal={() => setIsAvatarModalOpen(true)}
+          />
+        ) : isFeedRoute ? (
+          <FeedPage
+            authToken={authToken}
+            onNavigateToProfile={(profileName) => navigateTo(`/profile/${encodeURIComponent(profileName)}`)}
           />
         ) : isProfileRoute ? (
           <ProfilePage
@@ -1579,6 +1588,10 @@ function normalizePath(pathname: string): AppRoute {
 
   if (pathname === '/settings') {
     return '/settings';
+  }
+
+  if (pathname === '/feed') {
+    return '/feed';
   }
 
   if (pathname === '/home') {
