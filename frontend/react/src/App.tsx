@@ -11,6 +11,7 @@ import SettingsPage from './pages/SettingsPage';
 import ConfirmLogoutModal from './components/ConfirmLogoutModal';
 import CookieModal from './components/CookieModal';
 import AvatarModal from './components/AvatarModal';
+import PinnedPlatinumsModal from './components/PinnedPlatinumsModal';
 import FriendsChatSidebar from './components/FriendsChatSidebar';
 import type {
   Achievement,
@@ -73,6 +74,7 @@ export default function App() {
   const [profileError, setProfileError] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [isPinnedModalOpen, setIsPinnedModalOpen] = useState(false);
   const [isFriendsSidebarOpen, setIsFriendsSidebarOpen] = useState(false);
   const [incomingRequestsCount, setIncomingRequestsCount] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
@@ -1264,6 +1266,7 @@ export default function App() {
             formatDateTime={formatDateTime}
             isReadOnly={isPublicProfileRoute}
             onOpenAvatarModal={() => setIsAvatarModalOpen(true)}
+            onOpenPinnedModal={() => setIsPinnedModalOpen(true)}
           />
         ) : (
           <HomePage
@@ -1390,6 +1393,14 @@ export default function App() {
         userInitials={userInitials}
         onClose={() => setIsAvatarModalOpen(false)}
         onSaveAvatar={handleSaveAvatar}
+      />
+      <PinnedPlatinumsModal
+        isOpen={isPinnedModalOpen}
+        user={user}
+        authToken={authToken}
+        platinumGames={platinums.filter((p) => p.isPlatinum)}
+        onClose={() => setIsPinnedModalOpen(false)}
+        onUpdateUser={(updatedUser) => setUser(updatedUser)}
       />
       <FriendsChatSidebar
         isOpen={isFriendsSidebarOpen}

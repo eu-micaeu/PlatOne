@@ -22,6 +22,7 @@ type UserRecord = {
   email: string;
   passwordHash: string;
   avatarUrl?: string;
+  pinnedPlatinumIds?: string[];
   createdAt: Date;
   steam?: {
     steamId: string;
@@ -68,6 +69,7 @@ type SafeUser = {
   name: string;
   email: string;
   avatarUrl?: string | null;
+  pinnedPlatinumIds?: string[];
   createdAt: string;
   steamConnected: boolean;
   xboxConnected: boolean;
@@ -122,6 +124,7 @@ function sanitizeUser(user: WithId<UserRecord>): SafeUser {
     name: user.name,
     email: user.email,
     avatarUrl: user.avatarUrl || null,
+    pinnedPlatinumIds: user.pinnedPlatinumIds || [],
     createdAt: user.createdAt.toISOString(),
     steamConnected: Boolean(user.steam?.steamId),
     xboxConnected: Boolean(user.xbox?.gamertag),
@@ -803,6 +806,42 @@ async function startServer() {
     } catch (error) {
       console.error("Update avatar error:", error);
       res.status(500).json({ error: "Erro ao atualizar avatar do usuario." });
+    }
+  });
+
+  app.put("/api/user/pinned-platinums", authMiddleware, async (req: AuthedRequest, res) => {
+    try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ error: "Nao autenticado" });
+        return;
+      }
+
+      const rawIds = req.body?.pinnedIds;
+      if (!Array.isArray(rawIds)) {
+        res.status(400).json({ error: "Informe uma lista de IDs de platinas." });
+        return;
+      }
+
+      const pinnedIds = rawIds
+        .filter((id) => typeof id === "string" && id.trim().length > 0)
+        .slice(0, 5);
+
+      await usersCollection.updateOne(
+        { _id: userId },
+        { $set: { pinnedPlatinumIds: pinnedIds } }
+      );
+
+      const updatedUser = await usersCollection.findOne({ _id: userId });
+      if (!updatedUser) {
+        res.status(404).json({ error: "Usuario nao encontrado." });
+        return;
+      }
+
+      res.json({ user: sanitizeUser(updatedUser) });
+    } catch (error) {
+      console.error("Update pinned platinums error:", error);
+      res.status(500).json({ error: "Erro ao atualizar platinas em destaque." });
     }
   });
 

@@ -34,6 +34,7 @@ export interface AuthUser {
   name: string;
   email: string;
   avatarUrl?: string | null;
+  pinnedPlatinumIds?: string[];
   createdAt: string;
 }
 

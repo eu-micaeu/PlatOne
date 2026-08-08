@@ -1,7 +1,7 @@
 import { useState, type JSX, type ReactNode, type SyntheticEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import GameCard from '../components/GameCard';
-import { Camera, Check, Eye, Gamepad2, LoaderCircle, Share2, ShieldCheck, Trophy } from 'lucide-react';
+import { Award, Camera, Check, Eye, Gamepad2, LoaderCircle, Pin, Share2, ShieldCheck, Trophy } from 'lucide-react';
 
 import type { AuthUser, Platinum, Stats, SteamStatus } from '../types/app';
 
@@ -26,6 +26,7 @@ type ProfilePageProps = {
   formatDateTime: (value: string) => string;
   isReadOnly?: boolean;
   onOpenAvatarModal?: () => void;
+  onOpenPinnedModal?: () => void;
 };
 
 export default function ProfilePage({
@@ -49,6 +50,7 @@ export default function ProfilePage({
   formatDateTime,
   isReadOnly = false,
   onOpenAvatarModal,
+  onOpenPinnedModal,
 }: ProfilePageProps) {
   const [copied, setCopied] = useState(false);
 
@@ -123,9 +125,6 @@ export default function ProfilePage({
               <p className="truncate font-mono text-[11px] uppercase tracking-wider text-[var(--text-soft)]">
                 @{(user?.name ?? 'platone').toLowerCase().replace(/\s+/g, '.')}
               </p>
-              <div className="mt-1.5 inline-flex rounded border border-black/10 dark:border-white/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-[var(--text-soft)]">
-                {platinumGames.length} platinas
-              </div>
             </div>
           </div>
 
@@ -180,6 +179,95 @@ export default function ProfilePage({
           <ProfileMetric icon={<Gamepad2 size={14} />} label="Biblioteca" value={stats?.totalGames ?? 0} />
         </div>
       </motion.section>
+
+      {/* Vitrine de Orgulho / Platinas em Destaque (Pinned Showcase) */}
+      {(() => {
+        const pinnedIds = user?.pinnedPlatinumIds || [];
+        const pinnedGames = profilePlatinums.filter((g) => pinnedIds.includes(g.id));
+
+        if (isReadOnly && pinnedGames.length === 0) return null;
+
+        return (
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.05 }}
+            className="glass-panel p-6 border border-black/10 dark:border-white/10 relative overflow-hidden"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--ink-main)] text-white dark:bg-white dark:text-black">
+                  <Award size={18} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-display text-lg font-bold tracking-tight text-[var(--text-main)]">
+                      Vitrine de Orgulho
+                    </h2>
+                    <span className="rounded-full border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[var(--text-main)] font-bold">
+                      Destaques 🎖️
+                    </span>
+                  </div>
+                  <p className="text-xs text-[var(--text-soft)] mt-0.5">
+                    {isReadOnly ? 'Platinas destacadas com orgulho pelo jogador.' : 'Exiba até 5 das suas platinas mais difíceis ou marcantes.'}
+                  </p>
+                </div>
+              </div>
+
+              {!isReadOnly && onOpenPinnedModal && (
+                <button
+                  type="button"
+                  onClick={onOpenPinnedModal}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/10 px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-[var(--text-main)] font-bold transition-all hover:bg-black/10 dark:hover:bg-white/20 active:scale-95"
+                >
+                  <Pin size={13} />
+                  <span>Personalizar Vitrine</span>
+                </button>
+              )}
+            </div>
+
+            {pinnedGames.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                {pinnedGames.map((game, index) => (
+                  <div key={game.id} className="relative group">
+                    <GameCard
+                      game={game}
+                      viewMode="grid"
+                      order={index}
+                      onOpenDetails={onOpenGameDetails}
+                      handleGameImageError={handleGameImageError}
+                      formatDate={formatDateTime}
+                    />
+                    <div className="absolute top-2 right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--ink-main)] text-white dark:bg-white dark:text-black shadow-md font-mono text-[10px] font-bold">
+                      #{index + 1}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-black/15 dark:border-white/15 bg-black/5 dark:bg-white/5 p-6 text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/10 dark:bg-white/10 text-[var(--text-main)] mb-2">
+                  <Pin size={20} />
+                </div>
+                <p className="font-display text-sm font-bold text-[var(--text-main)]">Sua vitrine está vazia</p>
+                <p className="text-xs text-[var(--text-soft)] mt-1 max-w-md">
+                  Escolha até 5 das suas platinas mais desafiadoras ou marcantes para colocá-las em destaque no seu perfil público.
+                </p>
+                {!isReadOnly && onOpenPinnedModal && (
+                  <button
+                    type="button"
+                    onClick={onOpenPinnedModal}
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[var(--ink-main)] px-3.5 py-1.5 font-mono text-xs uppercase tracking-wider text-white dark:bg-white dark:text-black font-bold transition-opacity hover:opacity-90"
+                  >
+                    <Pin size={13} />
+                    <span>Selecionar Destaques</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </motion.section>
+        );
+      })()}
 
       <motion.section
         initial={{ opacity: 0, y: 10 }}
