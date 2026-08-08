@@ -183,7 +183,7 @@ export default function EmailVerificationModal({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -192,7 +192,7 @@ export default function EmailVerificationModal({
           }}
         >
           <motion.div
-            className="glass-panel relative w-full max-w-md overflow-hidden p-6 sm:p-8 shadow-2xl border border-white/10 bg-[#0a0a0a]"
+            className="glass-panel relative w-full max-w-md overflow-hidden p-6 sm:p-8 shadow-2xl border border-black/10 dark:border-white/10 bg-[var(--bg-main)] text-[var(--text-main)]"
             initial={{ opacity: 0, scale: 0.95, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 12 }}
@@ -202,7 +202,7 @@ export default function EmailVerificationModal({
             {/* Botão Fechar */}
             <button
               type="button"
-              className="absolute right-4 top-4 rounded-lg p-1.5 text-[var(--text-soft)] hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
+              className="absolute right-4 top-4 rounded-lg p-1.5 text-[var(--text-soft)] hover:text-[var(--text-main)] hover:bg-black/5 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
               onClick={onClose}
               disabled={isSubmitting}
               aria-label="Fechar modal"
@@ -212,7 +212,7 @@ export default function EmailVerificationModal({
 
             {/* Cabeçalho */}
             <div className="flex flex-col items-center text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white mb-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--ink-main)] text-white dark:bg-white dark:text-black mb-4 shadow-sm">
                 <Mail size={22} />
               </div>
 
@@ -220,20 +220,20 @@ export default function EmailVerificationModal({
                 // PLATONE VERIFICATION
               </div>
 
-              <h3 className="font-display text-xl font-bold tracking-tight text-white">
+              <h3 className="font-display text-xl font-bold tracking-tight text-[var(--text-main)]">
                 Verifique seu E-mail
               </h3>
 
               <p className="mt-2 text-xs leading-relaxed text-[var(--text-soft)] max-w-xs">
                 Enviamos um código de 6 dígitos para{' '}
-                <strong className="text-white font-mono">{email || 'seu e-mail'}</strong>.
+                <strong className="text-[var(--text-main)] font-mono">{email || 'seu e-mail'}</strong>.
               </p>
             </div>
 
             {/* Alertas de Erro ou Sucesso */}
             {errorMsg && (
               <motion.div
-                className="mt-4 flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-xs text-red-400"
+                className="mt-4 flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-xs text-red-600 dark:text-red-400"
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
               >
@@ -244,7 +244,7 @@ export default function EmailVerificationModal({
 
             {successMsg && (
               <motion.div
-                className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs text-emerald-400"
+                className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs text-emerald-600 dark:text-emerald-400"
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
               >
@@ -267,7 +267,7 @@ export default function EmailVerificationModal({
                     onChange={(e) => handleDigitChange(index, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(index, e)}
                     disabled={isSubmitting || !!successMsg}
-                    className="h-12 w-11 sm:h-14 sm:w-12 rounded-lg border border-white/10 bg-black text-center font-mono text-xl font-bold text-white transition-all focus:border-white focus:outline-none focus:ring-1 focus:ring-white disabled:opacity-50"
+                    className="h-12 w-11 sm:h-14 sm:w-12 rounded-xl border border-black/15 dark:border-white/15 bg-black/5 dark:bg-white/5 text-center font-mono text-xl font-bold text-[var(--text-main)] transition-all focus:border-[var(--text-main)] focus:bg-transparent focus:outline-none focus:ring-1 focus:ring-[var(--text-main)] disabled:opacity-50 shadow-xs"
                   />
                 ))}
               </div>
@@ -276,7 +276,7 @@ export default function EmailVerificationModal({
               <button
                 type="submit"
                 disabled={codeString.length !== 6 || isSubmitting || !!successMsg}
-                className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-white font-mono text-xs uppercase font-bold tracking-wider text-black transition-all hover:bg-zinc-200 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
+                className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--ink-main)] font-mono text-xs uppercase font-bold tracking-wider text-white dark:bg-white dark:text-black shadow-md transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <>
@@ -290,13 +290,13 @@ export default function EmailVerificationModal({
             </form>
 
             {/* Opção de Reenviar Código */}
-            <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4 text-xs">
+            <div className="mt-6 flex items-center justify-between border-t border-black/10 dark:border-white/10 pt-4 text-xs">
               <span className="text-[var(--text-soft)]">Não recebeu o código?</span>
               <button
                 type="button"
                 onClick={handleResendCode}
                 disabled={!canResend || isResending || isSubmitting}
-                className="inline-flex items-center gap-1.5 font-mono text-xs text-white hover:underline disabled:text-[var(--text-soft)] disabled:no-underline disabled:opacity-50 transition-colors"
+                className="inline-flex items-center gap-1.5 font-mono text-xs text-[var(--text-main)] font-semibold hover:underline disabled:text-[var(--text-soft)] disabled:no-underline disabled:opacity-50 transition-colors"
               >
                 {isResending ? (
                   <>

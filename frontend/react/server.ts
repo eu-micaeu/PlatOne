@@ -694,10 +694,13 @@ async function startServer() {
   // Helper para disparo real de e-mail via Resend REST API
   const sendEmailViaResend = async (toEmail: string, code: string) => {
     const resendApiKey = (process.env.RESEND_API_KEY || "").trim();
-    const fromAddress = (process.env.SMTP_FROM || "PlatOne <no-reply@platone.xyz>").trim();
+    const fromAddress = (process.env.SMTP_FROM || "PlatOne <onboarding@resend.dev>").trim();
 
     if (!resendApiKey) {
-      throw new Error("Nenhuma chave RESEND_API_KEY foi configurada no arquivo .env");
+      console.log(`\n======================================================`);
+      console.log(`[DEV MODE - RESEND OMITTED] Código de verificação para ${toEmail}: ${code}`);
+      console.log(`======================================================\n`);
+      return { id: "dev-mock-email", devMode: true };
     }
 
     const htmlContent = `
@@ -771,26 +774,46 @@ async function startServer() {
 </html>
     `;
 
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: fromAddress,
-        to: [toEmail],
-        subject: "Código de Verificação - PlatOne",
-        html: htmlContent,
-      }),
-    });
+    try {
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: fromAddress,
+          to: [toEmail],
+          subject: "Código de Verificação - PlatOne",
+          html: htmlContent,
+        }),
+      });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Falha no Resend (status ${response.status}): ${errText}`);
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error(`[RESEND API ERROR] Status ${response.status}: ${errText}`);
+        console.log(`\n======================================================`);
+        console.log(`[DEV FALLBACK] Código de verificação para ${toEmail}: ${code}`);
+        console.log(`======================================================\n`);
+
+        if (process.env.NODE_ENV !== "production") {
+          return { id: "dev-fallback-email", warning: errText };
+        }
+
+        throw new Error(`Falha no Resend (status ${response.status}): ${errText}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error("[EMAIL SERVICE ERROR]", error?.message || error);
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`\n======================================================`);
+        console.log(`[DEV FALLBACK] Código de verificação para ${toEmail}: ${code}`);
+        console.log(`======================================================\n`);
+        return { id: "dev-fallback-email", warning: error?.message };
+      }
+      throw error;
     }
-
-    return await response.json();
   };
 
   // Endpoint para solicitar o envio do código por e-mail
