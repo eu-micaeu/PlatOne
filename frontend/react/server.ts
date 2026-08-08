@@ -651,6 +651,55 @@ async function syncRealXboxGames(
   }
 }
 
+async function syncAllUserAccounts(
+  usersCollection: Collection<UserRecord>,
+  platinumsCollection: Collection
+) {
+  console.log(`[CRONJOB 1H] Iniciando sincronização automática de conquistas (a cada 1 hora)...`);
+  try {
+    const allUsers = await usersCollection.find({}).toArray();
+    let syncedCount = 0;
+
+    for (const user of allUsers) {
+      const userId = user._id.toHexString();
+      let userSynced = false;
+
+      // Sincroniza Steam se conectado
+      if (user.steam?.steamId) {
+        try {
+          await proxyBackendSync(user.steam.steamId);
+          userSynced = true;
+        } catch (steamErr) {
+          console.error(`[CRONJOB 1H] Erro ao sincronizar Steam para ${user.name} (${user.email}):`, steamErr);
+        }
+      }
+
+      // Sincroniza Xbox se conectado
+      if (user.xbox?.gamertag) {
+        try {
+          await syncRealXboxGames(
+            user.xbox.gamertag,
+            userId,
+            user.xboxApiKey || "",
+            platinumsCollection
+          );
+          userSynced = true;
+        } catch (xboxErr) {
+          console.error(`[CRONJOB 1H] Erro ao sincronizar Xbox para ${user.name} (${user.email}):`, xboxErr);
+        }
+      }
+
+      if (userSynced) {
+        syncedCount++;
+      }
+    }
+
+    console.log(`[CRONJOB 1H] Sincronização concluída! ${syncedCount} de ${allUsers.length} contas sincronizadas com sucesso.`);
+  } catch (error) {
+    console.error(`[CRONJOB 1H] Erro ao executar tarefa de sincronização horária:`, error);
+  }
+}
+
 async function startServer() {
   const mongoClient = new MongoClient(DATABASE_URL);
   await mongoClient.connect();
@@ -2234,11 +2283,31 @@ async function handleXboxGameAchievements(
     });
   }
 
+  // Endpoint manual para testar ou disparar o cronjob de sincronização horária
+  app.post("/api/admin/trigger-hourly-sync", async (req, res) => {
+    syncAllUserAccounts(usersCollection, platinumsCollection).catch(console.error);
+    res.json({ message: "Sincronização horária iniciada em segundo plano para todas as contas!" });
+  });
+
+  // Configuração do Cronjob Recorrente (A cada 1 hora = 3600000 ms)
+  const HOURLY_SYNC_INTERVAL_MS = 60 * 60 * 1000;
+  const hourlySyncInterval = setInterval(() => {
+    syncAllUserAccounts(usersCollection, platinumsCollection).catch(console.error);
+  }, HOURLY_SYNC_INTERVAL_MS);
+
+  // Executa uma sincronização inicial 15 segundos após a inicialização do servidor
+  const initialSyncTimeout = setTimeout(() => {
+    syncAllUserAccounts(usersCollection, platinumsCollection).catch(console.error);
+  }, 15000);
+
   httpServer.listen(3005, "0.0.0.0", () => {
     console.log("Server running on http://localhost:3005");
+    console.log("[CRONJOB] Cronjob de sincronização horária ativado (a cada 1 hora).");
   });
 
   const shutdown = async () => {
+    clearInterval(hourlySyncInterval);
+    clearTimeout(initialSyncTimeout);
     await mongoClient.close();
   };
 
