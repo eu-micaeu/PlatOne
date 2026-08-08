@@ -82,26 +82,6 @@ export default function AppTopBar({
             </button>
           )}
 
-          {onToggleFriendsSidebar && (
-            <button
-              className={`relative inline-flex h-9 items-center gap-1.5 rounded-lg border border-black/10 dark:border-white/10 px-2.5 transition-colors ${
-                isFriendsSidebarOpen
-                  ? 'bg-[var(--ink-main)] text-white dark:bg-white dark:text-black font-semibold'
-                  : 'bg-transparent text-[var(--text-main)] hover:bg-black/5 dark:hover:bg-white/10'
-              }`}
-              type="button"
-              onClick={onToggleFriendsSidebar}
-              aria-label="Abrir Amigos e Chat"
-              title="Amigos & Chat"
-            >
-              <Users size={15} />
-              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-              </span>
-            </button>
-          )}
-
           <button
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-black/10 dark:border-white/10 bg-transparent text-[var(--text-main)] transition-colors hover:bg-black/5 dark:hover:bg-white/10"
             type="button"
@@ -114,29 +94,70 @@ export default function AppTopBar({
           </button>
 
           <nav className="flex items-center gap-1.5" aria-label="Navegacao principal">
-            {NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const isActive = item.path === activePath;
+            <button
+              className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+                activePath === '/home'
+                  ? 'bg-[var(--ink-main)] text-white dark:bg-white dark:text-black font-semibold'
+                  : 'border border-black/10 dark:border-white/10 text-[var(--text-soft)] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[var(--text-main)]'
+              }`}
+              type="button"
+              onClick={() => onNavigate('/home')}
+              disabled={activePath === '/home'}
+              aria-label="Home"
+              title="Home"
+            >
+              <House size={15} />
+              <span className="sr-only">Home</span>
+            </button>
 
-              return (
-                <button
-                  key={item.path}
-                  className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors disabled:cursor-default ${
-                    isActive
-                      ? 'bg-[var(--ink-main)] text-white dark:bg-white dark:text-black font-semibold'
-                      : 'border border-black/10 dark:border-white/10 text-[var(--text-soft)] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[var(--text-main)]'
-                  }`}
-                  type="button"
-                  onClick={() => onNavigate(item.path)}
-                  disabled={isActive}
-                  aria-label={item.label}
-                  title={item.label}
-                >
-                  <Icon size={15} />
-                  <span className="sr-only">{item.label}</span>
-                </button>
-              );
-            })}
+            <button
+              className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+                activePath === '/profile'
+                  ? 'bg-[var(--ink-main)] text-white dark:bg-white dark:text-black font-semibold'
+                  : 'border border-black/10 dark:border-white/10 text-[var(--text-soft)] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[var(--text-main)]'
+              }`}
+              type="button"
+              onClick={() => onNavigate('/profile')}
+              disabled={activePath === '/profile'}
+              aria-label="Perfil"
+              title="Perfil"
+            >
+              <UserRound size={15} />
+              <span className="sr-only">Perfil</span>
+            </button>
+
+            {onToggleFriendsSidebar && (
+              <button
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+                  isFriendsSidebarOpen
+                    ? 'bg-[var(--ink-main)] text-white dark:bg-white dark:text-black font-semibold'
+                    : 'border border-black/10 dark:border-white/10 text-[var(--text-soft)] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[var(--text-main)]'
+                }`}
+                type="button"
+                onClick={onToggleFriendsSidebar}
+                aria-label="Amigos & Chat"
+                title="Amigos & Chat"
+              >
+                <Users size={15} />
+                <span className="sr-only">Amigos & Chat</span>
+              </button>
+            )}
+
+            <button
+              className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+                activePath === '/settings'
+                  ? 'bg-[var(--ink-main)] text-white dark:bg-white dark:text-black font-semibold'
+                  : 'border border-black/10 dark:border-white/10 text-[var(--text-soft)] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[var(--text-main)]'
+              }`}
+              type="button"
+              onClick={() => onNavigate('/settings')}
+              disabled={activePath === '/settings'}
+              aria-label="Configuracoes"
+              title="Configuracoes"
+            >
+              <Settings2 size={15} />
+              <span className="sr-only">Configuracoes</span>
+            </button>
           </nav>
 
           <button

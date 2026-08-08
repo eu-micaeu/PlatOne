@@ -243,20 +243,20 @@ export default function FriendsChatSidebar({
           animate={{ x: 0 }}
           exit={{ x: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-          className="fixed right-0 top-0 bottom-0 z-50 flex w-full max-w-sm flex-col border-l border-black/10 dark:border-white/10 bg-[var(--bg-main)] shadow-2xl"
+          className="fixed right-0 top-0 bottom-0 z-50 flex w-[320px] max-w-full flex-col border-l border-black/10 dark:border-white/10 bg-[var(--bg-main)] shadow-2xl"
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 p-4">
+          <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 p-2.5 sm:p-3">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--ink-main)] text-white dark:bg-white dark:text-black">
-                <Users size={16} />
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--ink-main)] text-white dark:bg-white dark:text-black">
+                <Users size={14} />
               </div>
               <div>
-                <h2 className="font-display text-base font-bold tracking-tight text-[var(--text-main)]">
+                <h2 className="font-display text-sm font-bold tracking-tight text-[var(--text-main)]">
                   Amigos & Chat
                 </h2>
-                <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-soft)]">
-                  {onlineCount} amigos online
+                <p className="font-mono text-[9px] uppercase tracking-wider text-[var(--text-soft)]">
+                  {onlineCount} online
                 </p>
               </div>
             </div>
@@ -264,10 +264,10 @@ export default function FriendsChatSidebar({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1.5 text-[var(--text-soft)] hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+              className="rounded-lg p-1 text-[var(--text-soft)] hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
               title="Fechar sidebar"
             >
-              <X size={18} />
+              <X size={16} />
             </button>
           </div>
 
@@ -276,7 +276,7 @@ export default function FriendsChatSidebar({
             <button
               type="button"
               onClick={() => setActiveTab('friends')}
-              className={`flex-1 flex items-center justify-center gap-2 rounded-md py-1.5 font-mono text-xs uppercase tracking-wider transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-1.5 font-mono text-xs uppercase tracking-wider transition-colors ${
                 activeTab === 'friends'
                   ? 'bg-[var(--bg-main)] font-bold text-[var(--text-main)] shadow-xs'
                   : 'text-[var(--text-soft)] hover:text-[var(--text-main)]'
@@ -289,14 +289,14 @@ export default function FriendsChatSidebar({
             <button
               type="button"
               onClick={() => setActiveTab('chat')}
-              className={`flex-1 flex items-center justify-center gap-2 rounded-md py-1.5 font-mono text-xs uppercase tracking-wider transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-1.5 font-mono text-xs uppercase tracking-wider transition-colors ${
                 activeTab === 'chat'
                   ? 'bg-[var(--bg-main)] font-bold text-[var(--text-main)] shadow-xs'
                   : 'text-[var(--text-soft)] hover:text-[var(--text-main)]'
               }`}
             >
               <MessageSquare size={13} />
-              <span>Chat {selectedFriend ? `(${selectedFriend.name})` : ''}</span>
+              <span>Chat</span>
             </button>
           </div>
 
@@ -323,11 +323,11 @@ export default function FriendsChatSidebar({
                   <button
                     type="button"
                     onClick={() => setShowAddForm(!showAddForm)}
-                    className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-[var(--ink-main)] px-2.5 font-mono text-[10px] uppercase tracking-wider text-white dark:bg-white dark:text-black font-medium transition-opacity hover:opacity-90"
+                    className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--ink-main)] px-2.5 font-mono text-[10px] uppercase tracking-wider text-white dark:bg-white dark:text-black font-medium transition-opacity hover:opacity-90 flex-shrink-0"
                     title="Adicionar Amigo"
                   >
                     <UserPlus size={13} />
-                    <span className="hidden sm:inline">Add</span>
+                    <span>+ Add</span>
                   </button>
                 </div>
 
@@ -414,24 +414,24 @@ export default function FriendsChatSidebar({
                   filteredFriends.map((friend) => (
                     <div
                       key={friend.id}
-                      className="group flex items-center justify-between rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 p-2.5 transition-all hover:bg-black/10 dark:hover:bg-white/10"
+                      className="group flex items-center justify-between rounded-lg border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 p-2 transition-all hover:bg-black/10 dark:hover:bg-white/10"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         {/* Avatar with Status Indicator */}
-                        <div className="relative h-10 w-10 flex-shrink-0">
+                        <div className="relative h-8 w-8 flex-shrink-0">
                           {friend.avatarUrl ? (
                             <img
                               src={friend.avatarUrl}
                               alt={friend.name}
-                              className="h-10 w-10 rounded-lg object-cover border border-black/10 dark:border-white/15"
+                              className="h-8 w-8 rounded-md object-cover border border-black/10 dark:border-white/15"
                             />
                           ) : (
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--ink-main)] font-display text-sm font-bold text-white dark:bg-white dark:text-black">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--ink-main)] font-display text-xs font-bold text-white dark:bg-white dark:text-black">
                               {friend.name.slice(0, 2).toUpperCase()}
                             </div>
                           )}
                           <span
-                            className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[var(--bg-main)] ${
+                            className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--bg-main)] ${
                               friend.status === 'online'
                                 ? 'bg-emerald-500'
                                 : friend.status === 'ingame'
@@ -457,14 +457,14 @@ export default function FriendsChatSidebar({
                       </div>
 
                       {/* Quick Actions */}
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-0.5 flex-shrink-0">
                         <button
                           type="button"
                           onClick={() => handleStartChat(friend)}
-                          className="rounded-lg p-1.5 text-[var(--text-soft)] hover:bg-black/10 dark:hover:bg-white/15 hover:text-[var(--text-main)] transition-colors"
+                          className="rounded-md p-1 text-[var(--text-soft)] hover:bg-black/10 dark:hover:bg-white/15 hover:text-[var(--text-main)] transition-colors"
                           title="Abrir Chat"
                         >
-                          <MessageSquare size={15} />
+                          <MessageSquare size={14} />
                         </button>
                         <button
                           type="button"
@@ -472,18 +472,18 @@ export default function FriendsChatSidebar({
                             onNavigateToProfile(friend.name);
                             onClose();
                           }}
-                          className="rounded-lg p-1.5 text-[var(--text-soft)] hover:bg-black/10 dark:hover:bg-white/15 hover:text-[var(--text-main)] transition-colors"
+                          className="rounded-md p-1 text-[var(--text-soft)] hover:bg-black/10 dark:hover:bg-white/15 hover:text-[var(--text-main)] transition-colors"
                           title="Ver Perfil"
                         >
-                          <ExternalLink size={15} />
+                          <ExternalLink size={14} />
                         </button>
                         <button
                           type="button"
                           onClick={() => handleRemoveFriend(friend.id)}
-                          className="rounded-lg p-1.5 text-[var(--text-soft)] hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                          className="rounded-md p-1 text-[var(--text-soft)] hover:bg-red-500/10 hover:text-red-500 transition-colors"
                           title="Remover Amigo"
                         >
-                          <UserMinus size={14} />
+                          <UserMinus size={13} />
                         </button>
                       </div>
                     </div>
