@@ -511,7 +511,19 @@ export default function App() {
         }
 
         const payload = (await response.json()) as { user: AuthUser };
-        setUser(payload.user);
+        if (!payload.user.isEmailVerified) {
+          setPendingAuthResult({ token: authToken, user: payload.user });
+          setVerificationEmail(payload.user.email);
+          setIsVerificationModalOpen(true);
+          setUser(null);
+          fetch('/api/auth/send-verification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: payload.user.email }),
+          }).catch((err) => console.error('Erro ao enviar e-mail de verificação:', err));
+        } else {
+          setUser(payload.user);
+        }
       } catch (sessionError) {
         console.error('Session check failed:', sessionError);
         setUser(null);
@@ -801,8 +813,8 @@ export default function App() {
 
       const result = (await response.json()) as AuthResponse;
 
-      if (authMode === 'register') {
-        const targetEmail = emailInput.trim();
+      if (!result.user.isEmailVerified) {
+        const targetEmail = result.user.email || emailInput.trim();
         try {
           await fetch('/api/auth/send-verification', {
             method: 'POST',
@@ -829,6 +841,31 @@ export default function App() {
       setAuthError(submitError instanceof Error ? submitError.message : 'Erro ao autenticar.');
     } finally {
       setAuthSubmitting(false);
+    }
+  };
+
+  const handleVerificationClose = () => {
+    setIsVerificationModalOpen(false);
+    setPendingAuthResult(null);
+    setSessionToken(null);
+    setUser(null);
+    setAuthError('É necessário verificar seu e-mail para acessar a conta.');
+    navigateTo('/', true);
+  };
+
+  const handleVerificationSuccess = () => {
+    setIsVerificationModalOpen(false);
+    if (pendingAuthResult) {
+      const verifiedUser: AuthUser = { ...pendingAuthResult.user, isEmailVerified: true };
+      setSessionToken(pendingAuthResult.token, rememberMe);
+      setUser(verifiedUser);
+      setPendingAuthResult(null);
+      resetAuthForm();
+      setAuthError(null);
+      navigateTo('/home', true);
+    } else if (user) {
+      setUser({ ...user, isEmailVerified: true });
+      navigateTo('/home', true);
     }
   };
 
@@ -1050,27 +1087,9 @@ export default function App() {
         />
         <EmailVerificationModal
           isOpen={isVerificationModalOpen}
-          email={verificationEmail || emailInput || ''}
-          onClose={() => {
-            setIsVerificationModalOpen(false);
-            if (pendingAuthResult) {
-              setSessionToken(pendingAuthResult.token, rememberMe);
-              setUser(pendingAuthResult.user);
-              setPendingAuthResult(null);
-              resetAuthForm();
-              navigateTo('/home', true);
-            }
-          }}
-          onSuccess={() => {
-            setIsVerificationModalOpen(false);
-            if (pendingAuthResult) {
-              setSessionToken(pendingAuthResult.token, rememberMe);
-              setUser({ ...pendingAuthResult.user });
-              setPendingAuthResult(null);
-              resetAuthForm();
-              navigateTo('/home', true);
-            }
-          }}
+          email={verificationEmail || emailInput || user?.email || ''}
+          onClose={handleVerificationClose}
+          onSuccess={handleVerificationSuccess}
         />
         <CookieModal />
       </>
@@ -1437,28 +1456,8 @@ export default function App() {
       <EmailVerificationModal
         isOpen={isVerificationModalOpen}
         email={verificationEmail || user?.email || ''}
-        onClose={() => {
-          setIsVerificationModalOpen(false);
-          if (pendingAuthResult) {
-            setSessionToken(pendingAuthResult.token, rememberMe);
-            setUser(pendingAuthResult.user);
-            setPendingAuthResult(null);
-            resetAuthForm();
-            navigateTo('/home', true);
-          }
-        }}
-        onSuccess={() => {
-          setIsVerificationModalOpen(false);
-          if (pendingAuthResult) {
-            setSessionToken(pendingAuthResult.token, rememberMe);
-            setUser({ ...pendingAuthResult.user });
-            setPendingAuthResult(null);
-            resetAuthForm();
-            navigateTo('/home', true);
-          } else if (user) {
-            setUser({ ...user });
-          }
-        }}
+        onClose={handleVerificationClose}
+        onSuccess={handleVerificationSuccess}
       />
       <AvatarModal
         isOpen={isAvatarModalOpen}
@@ -1915,6 +1914,7 @@ function normalizePublicUser(payload: unknown, fallbackName: string): AuthUser {
     name,
     email: readString(record, 'email') ?? '',
     createdAt: readString(record, 'createdAt', 'created_at') ?? new Date().toISOString(),
+    isEmailVerified: readBoolean(record, 'isEmailVerified', 'is_email_verified') ?? true,
   };
 }
 

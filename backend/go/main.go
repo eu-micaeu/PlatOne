@@ -269,7 +269,7 @@ func main() {
 
 		// Sucesso: atualiza status do usuário e remove o registro temporário
 		usersColl := db.Collection("users")
-		usersColl.UpdateOne(r.Context(), bson.M{"email": req.Email}, bson.M{"$set": bson.M{"is_email_verified": true}})
+		usersColl.UpdateOne(r.Context(), bson.M{"email": req.Email}, bson.M{"$set": bson.M{"is_email_verified": true, "isEmailVerified": true}})
 		coll.DeleteOne(r.Context(), bson.M{"email": req.Email})
 
 		w.Header().Set("Content-Type", "application/json")

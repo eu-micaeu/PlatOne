@@ -36,6 +36,7 @@ export interface AuthUser {
   avatarUrl?: string | null;
   pinnedPlatinumIds?: string[];
   createdAt: string;
+  isEmailVerified: boolean;
 }
 
 export interface AuthResponse {

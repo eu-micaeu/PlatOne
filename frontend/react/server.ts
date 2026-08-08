@@ -24,6 +24,8 @@ type UserRecord = {
   avatarUrl?: string;
   pinnedPlatinumIds?: string[];
   createdAt: Date;
+  isEmailVerified?: boolean;
+  is_email_verified?: boolean;
   steam?: {
     steamId: string;
     linkedAt: Date;
@@ -73,6 +75,7 @@ type SafeUser = {
   createdAt: string;
   steamConnected: boolean;
   xboxConnected: boolean;
+  isEmailVerified: boolean;
 };
 
 type AuthedRequest = express.Request & {
@@ -88,25 +91,16 @@ const AUTH_SESSIONS_COLLECTION = process.env.AUTH_SESSIONS_COLLECTION ?? "auth_s
 const AUTH_STEAM_STATES_COLLECTION = process.env.AUTH_STEAM_STATES_COLLECTION ?? "auth_steam_states";
 
 function getAppBaseURL(req?: express.Request): string {
-  const envUrl = process.env.APP_BASE_URL;
-  if (envUrl && envUrl.trim().length > 0) {
-    let cleaned = envUrl.trim().replace(/\/+$/, "");
-    if (cleaned.endsWith("/api")) {
-      cleaned = cleaned.slice(0, -4).replace(/\/+$/, "");
-    }
-    if (cleaned) {
-      return cleaned;
-    }
+  if (process.env.APP_BASE_URL) {
+    return process.env.APP_BASE_URL.replace(/\/$/, "");
   }
-
   if (req) {
-    const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol || "http";
-    const host = (req.headers["x-forwarded-host"] as string) || req.headers.host;
+    const proto = req.header("x-forwarded-proto") || req.protocol || "http";
+    const host = req.header("x-forwarded-host") || req.header("host");
     if (host) {
       return `${proto}://${host}`;
     }
   }
-
   return "http://localhost:3005";
 }
 
@@ -128,6 +122,7 @@ function sanitizeUser(user: WithId<UserRecord>): SafeUser {
     createdAt: user.createdAt.toISOString(),
     steamConnected: Boolean(user.steam?.steamId),
     xboxConnected: Boolean(user.xbox?.gamertag),
+    isEmailVerified: Boolean(user.isEmailVerified || (user as any).is_email_verified),
   };
 }
 
@@ -868,7 +863,7 @@ async function startServer() {
         return;
       }
 
-      await usersCollection.updateOne({ email: rawEmail }, { $set: { isEmailVerified: true } });
+      await usersCollection.updateOne({ email: rawEmail }, { $set: { isEmailVerified: true, is_email_verified: true } });
       await emailVerificationsCollection.deleteOne({ email: rawEmail });
 
       res.json({ message: "E-mail verificado com sucesso!" });

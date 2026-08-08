@@ -229,19 +229,15 @@ export default function ProfilePage({
             {pinnedGames.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
                 {pinnedGames.map((game, index) => (
-                  <div key={game.id} className="relative group">
-                    <GameCard
-                      game={game}
-                      viewMode="grid"
-                      order={index}
-                      onOpenDetails={onOpenGameDetails}
-                      handleGameImageError={handleGameImageError}
-                      formatDate={formatDateTime}
-                    />
-                    <div className="absolute top-2 right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--ink-main)] text-white dark:bg-white dark:text-black shadow-md font-mono text-[10px] font-bold">
-                      #{index + 1}
-                    </div>
-                  </div>
+                  <GameCard
+                    key={game.id}
+                    game={game}
+                    viewMode="grid"
+                    order={index}
+                    onOpenDetails={onOpenGameDetails}
+                    handleGameImageError={handleGameImageError}
+                    formatDate={formatDateTime}
+                  />
                 ))}
               </div>
             ) : (
