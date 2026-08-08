@@ -297,28 +297,27 @@ export default function FriendsChatSidebar({
 
   const onlineCount = friends.filter((f) => f.status === 'online' || f.status === 'ingame').length;
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 overflow-hidden">
-        {/* Backdrop for mobile */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/40 backdrop-blur-xs md:hidden"
-          onClick={onClose}
-        />
+      {isOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden pointer-events-none">
+          {/* Backdrop for mobile */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs md:hidden pointer-events-auto"
+            onClick={onClose}
+          />
 
-        {/* Sidebar Container */}
-        <motion.aside
-          initial={{ x: '100%' }}
-          animate={{ x: 0 }}
-          exit={{ x: '100%' }}
-          transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-          className="fixed right-0 top-0 bottom-0 z-50 flex w-[320px] max-w-full flex-col border-l border-black/10 dark:border-white/10 bg-[var(--bg-main)] shadow-2xl"
-        >
+          {/* Sidebar Container */}
+          <motion.aside
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+            className="fixed right-0 top-0 bottom-0 z-50 flex w-[320px] max-w-full flex-col border-l border-black/10 dark:border-white/10 bg-[var(--bg-main)] pointer-events-auto"
+          >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 p-2.5 sm:p-3">
             <div className="flex items-center gap-2">
@@ -834,6 +833,7 @@ export default function FriendsChatSidebar({
           )}
         </motion.aside>
       </div>
+      )}
     </AnimatePresence>
   );
 }

@@ -9,6 +9,7 @@ import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import ConfirmLogoutModal from './components/ConfirmLogoutModal';
+import ConfirmDeleteAccountModal from './components/ConfirmDeleteAccountModal';
 import CookieModal from './components/CookieModal';
 import AvatarModal from './components/AvatarModal';
 import PinnedPlatinumsModal from './components/PinnedPlatinumsModal';
@@ -74,6 +75,7 @@ export default function App() {
   const [xboxError, setXboxError] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isPinnedModalOpen, setIsPinnedModalOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
@@ -905,10 +907,6 @@ export default function App() {
       return;
     }
 
-    if (!window.confirm('Tem certeza que deseja apagar sua conta? Esta acao nao pode ser desfeita.')) {
-      return;
-    }
-
     setDeleteSubmitting(true);
     setProfileError(null);
 
@@ -923,6 +921,7 @@ export default function App() {
         throw new Error(message);
       }
 
+      setShowDeleteAccountModal(false);
       setSessionToken(null);
       setUser(null);
       setQuery('');
@@ -1305,7 +1304,7 @@ export default function App() {
             onConnectXbox={handleConnectXbox}
             onDisconnectXbox={handleDisconnectXbox}
             onSyncXbox={handleSyncXbox}
-            onDeleteAccount={handleDeleteAccount}
+            onDeleteAccount={() => setShowDeleteAccountModal(true)}
             onUpdateSteamAPIKey={handleUpdateSteamAPIKey}
             formatDateTime={formatDateTime}
             onOpenAvatarModal={() => setIsAvatarModalOpen(true)}
@@ -1452,6 +1451,12 @@ export default function App() {
         isLoggingOut={isLoggingOut}
         onClose={() => setShowLogoutModal(false)}
         onConfirm={handleLogout}
+      />
+      <ConfirmDeleteAccountModal
+        isOpen={showDeleteAccountModal}
+        isDeleting={deleteSubmitting}
+        onClose={() => setShowDeleteAccountModal(false)}
+        onConfirm={handleDeleteAccount}
       />
       <EmailVerificationModal
         isOpen={isVerificationModalOpen}
