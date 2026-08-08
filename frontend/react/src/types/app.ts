@@ -67,6 +67,7 @@ export interface Friend {
   status: 'online' | 'ingame' | 'offline';
   currentGame?: string | null;
   lastSeen?: string;
+  unreadCount?: number;
 }
 
 export interface ChatMessage {
@@ -74,6 +75,25 @@ export interface ChatMessage {
   senderId: string;
   receiverId: string;
   content: string;
+  createdAt: string;
+}
+
+export interface FriendRequest {
+  id: string;
+  user: {
+    id: string;
+    name: string;
+    avatarUrl?: string | null;
+  };
+  createdAt: string;
+}
+
+export interface UnreadMessageNotification {
+  friendId: string;
+  friendName: string;
+  friendAvatarUrl?: string | null;
+  lastMessage: string;
+  unreadCount: number;
   createdAt: string;
 }
 

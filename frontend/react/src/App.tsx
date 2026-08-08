@@ -17,6 +17,7 @@ import type {
   AuthMode,
   AuthResponse,
   AuthUser,
+  Friend,
   Platinum,
   Stats,
   StatusFilter,
@@ -73,6 +74,9 @@ export default function App() {
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isFriendsSidebarOpen, setIsFriendsSidebarOpen] = useState(false);
+  const [incomingRequestsCount, setIncomingRequestsCount] = useState(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [activeChatFriend, setActiveChatFriend] = useState<Friend | null>(null);
 
   const [publicProfileUser, setPublicProfileUser] = useState<AuthUser | null>(null);
   const [publicPlatinums, setPublicPlatinums] = useState<Platinum[]>([]);
@@ -547,6 +551,49 @@ export default function App() {
     fetchSteamStatus();
     fetchXboxStatus();
   }, [fetchDashboardData, fetchSteamStatus, fetchXboxStatus, isAuthenticated]);
+
+  const fetchFriendsSummary = useCallback(async () => {
+    if (!authToken) return;
+    try {
+      const res = await fetch('/api/friends', { headers: authHeaders });
+      if (res.ok) {
+        const data = (await res.json()) as {
+          incomingRequests?: unknown[];
+          unreadMessages?: { unreadCount?: number }[];
+        };
+        const countIncoming = Array.isArray(data.incomingRequests) ? data.incomingRequests.length : 0;
+        const countUnread = Array.isArray(data.unreadMessages)
+          ? data.unreadMessages.reduce((sum, u) => sum + (u.unreadCount || 0), 0)
+          : 0;
+        setIncomingRequestsCount(countIncoming);
+        setUnreadMessagesCount(countUnread);
+      }
+    } catch (err) {
+      console.error('Error fetching friends summary:', err);
+    }
+  }, [authHeaders, authToken]);
+
+  const handleOpenChatWithFriend = useCallback((friendId: string, friendName: string, avatarUrl?: string | null) => {
+    setActiveChatFriend({
+      id: friendId,
+      name: friendName,
+      avatarUrl,
+      status: 'online',
+    });
+    setIsFriendsSidebarOpen(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIncomingRequestsCount(0);
+      setUnreadMessagesCount(0);
+      return;
+    }
+
+    fetchFriendsSummary();
+    const intervalId = setInterval(fetchFriendsSummary, 10000);
+    return () => clearInterval(intervalId);
+  }, [fetchFriendsSummary, isAuthenticated]);
 
   useEffect(() => {
     if (!isPublicProfileRoute || !publicProfileName) {
@@ -1160,6 +1207,11 @@ export default function App() {
         onToggleTheme={toggleTheme}
         onToggleFriendsSidebar={() => setIsFriendsSidebarOpen((prev) => !prev)}
         isFriendsSidebarOpen={isFriendsSidebarOpen}
+        incomingRequestsCount={incomingRequestsCount}
+        unreadMessagesCount={unreadMessagesCount}
+        authToken={authToken}
+        onRefreshRequests={fetchFriendsSummary}
+        onOpenChatWithFriend={handleOpenChatWithFriend}
       />
 
       <main
@@ -1345,6 +1397,9 @@ export default function App() {
         authToken={authToken}
         onClose={() => setIsFriendsSidebarOpen(false)}
         onNavigateToProfile={(profileName) => navigateTo(`/profile/${encodeURIComponent(profileName)}`)}
+        onIncomingRequestsCountChange={setIncomingRequestsCount}
+        onUnreadMessagesCountChange={setUnreadMessagesCount}
+        activeChatFriend={activeChatFriend}
       />
       <CookieModal />
     </>

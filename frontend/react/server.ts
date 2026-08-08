@@ -47,15 +47,19 @@ type SteamStateRecord = {
 };
 
 type FriendRecord = {
-  userId: ObjectId;
-  friendUserId: ObjectId;
+  _id?: ObjectId;
+  requesterId: ObjectId;
+  recipientId: ObjectId;
+  status: "pending" | "accepted";
   createdAt: Date;
 };
 
 type ChatMessageRecord = {
+  _id?: ObjectId;
   senderId: string;
   receiverId: string;
   content: string;
+  read?: boolean;
   createdAt: Date;
 };
 
@@ -811,24 +815,94 @@ async function startServer() {
         return;
       }
 
-      const friendLinks = await friendsCollection.find({ userId }).toArray();
+      const friendLinks = await friendsCollection
+        .find({
+          $or: [{ requesterId: userId }, { recipientId: userId }],
+        })
+        .toArray();
+
+      const userIdStr = userId.toHexString();
       const realFriends: unknown[] = [];
+      const incomingRequests: unknown[] = [];
+      const outgoingRequests: unknown[] = [];
+      const unreadMessages: unknown[] = [];
 
       for (const link of friendLinks) {
-        const u = await usersCollection.findOne({ _id: link.friendUserId });
-        if (u) {
-          realFriends.push({
-            id: u._id.toHexString(),
-            name: u.name,
-            avatarUrl: u.avatarUrl || null,
-            status: "online",
-            currentGame: "No PlatOne",
-            lastSeen: "Online agora",
-          });
+        if (link.status === "accepted") {
+          const friendObjId = link.requesterId.equals(userId) ? link.recipientId : link.requesterId;
+          const u = await usersCollection.findOne({ _id: friendObjId });
+          if (u) {
+            const friendIdStr = u._id.toHexString();
+            const unreadCount = await chatMessagesCollection.countDocuments({
+              senderId: friendIdStr,
+              receiverId: userIdStr,
+              read: { $ne: true },
+            });
+
+            if (unreadCount > 0) {
+              const lastMsg = await chatMessagesCollection
+                .find({ senderId: friendIdStr, receiverId: userIdStr, read: { $ne: true } })
+                .sort({ createdAt: -1 })
+                .limit(1)
+                .next();
+
+              unreadMessages.push({
+                friendId: friendIdStr,
+                friendName: u.name,
+                friendAvatarUrl: u.avatarUrl || null,
+                lastMessage: lastMsg?.content || "Nova mensagem",
+                unreadCount,
+                createdAt: lastMsg ? lastMsg.createdAt.toISOString() : new Date().toISOString(),
+              });
+            }
+
+            realFriends.push({
+              id: friendIdStr,
+              name: u.name,
+              avatarUrl: u.avatarUrl || null,
+              status: "online",
+              currentGame: "No PlatOne",
+              lastSeen: "Online agora",
+              unreadCount,
+            });
+          }
+        } else if (link.status === "pending") {
+          if (link.recipientId.equals(userId)) {
+            const sender = await usersCollection.findOne({ _id: link.requesterId });
+            if (sender) {
+              incomingRequests.push({
+                id: link._id?.toHexString(),
+                user: {
+                  id: sender._id.toHexString(),
+                  name: sender.name,
+                  avatarUrl: sender.avatarUrl || null,
+                },
+                createdAt: link.createdAt.toISOString(),
+              });
+            }
+          } else if (link.requesterId.equals(userId)) {
+            const target = await usersCollection.findOne({ _id: link.recipientId });
+            if (target) {
+              outgoingRequests.push({
+                id: link._id?.toHexString(),
+                user: {
+                  id: target._id.toHexString(),
+                  name: target.name,
+                  avatarUrl: target.avatarUrl || null,
+                },
+                createdAt: link.createdAt.toISOString(),
+              });
+            }
+          }
         }
       }
 
-      res.json({ friends: realFriends });
+      res.json({
+        friends: realFriends,
+        incomingRequests,
+        outgoingRequests,
+        unreadMessages,
+      });
     } catch (error) {
       console.error("Get friends error:", error);
       res.status(500).json({ error: "Erro ao buscar amigos." });
@@ -864,34 +938,118 @@ async function startServer() {
       }
 
       const existing = await friendsCollection.findOne({
-        userId,
-        friendUserId: targetUser._id,
+        $or: [
+          { requesterId: userId, recipientId: targetUser._id },
+          { requesterId: targetUser._id, recipientId: userId },
+        ],
       });
 
       if (existing) {
-        res.status(409).json({ error: "Este amigo ja esta na sua lista." });
+        if (existing.status === "accepted") {
+          res.status(409).json({ error: "Este jogador ja e seu amigo!" });
+          return;
+        }
+        if (existing.requesterId.equals(userId)) {
+          res.status(409).json({ error: "Convite de amizade ja enviado! Aguardando aceite." });
+          return;
+        }
+        res.status(400).json({ error: "Este jogador ja te enviou um convite! Verifique seus convites pendentes." });
         return;
       }
 
       await friendsCollection.insertOne({
-        userId,
-        friendUserId: targetUser._id,
+        requesterId: userId,
+        recipientId: targetUser._id,
+        status: "pending",
         createdAt: new Date(),
       });
 
       res.status(201).json({
-        friend: {
-          id: targetUser._id.toHexString(),
-          name: targetUser.name,
-          avatarUrl: targetUser.avatarUrl || null,
-          status: "online",
-          currentGame: "No PlatOne",
-          lastSeen: "Online agora",
-        },
+        message: "Convite de amizade enviado com sucesso!",
       });
     } catch (error) {
-      console.error("Add friend error:", error);
-      res.status(500).json({ error: "Erro ao adicionar amigo." });
+      console.error("Add friend request error:", error);
+      res.status(500).json({ error: "Erro ao enviar convite de amizade." });
+    }
+  });
+
+  app.post("/api/friends/requests/:requestId/accept", authMiddleware, async (req: AuthedRequest, res) => {
+    try {
+      const userId = req.user?._id;
+      const requestIdStr = req.params?.requestId;
+      if (!userId || !requestIdStr) {
+        res.status(400).json({ error: "Requisicao invalida." });
+        return;
+      }
+
+      let reqObjId: ObjectId;
+      try {
+        reqObjId = new ObjectId(requestIdStr);
+      } catch {
+        res.status(400).json({ error: "ID de convite invalido." });
+        return;
+      }
+
+      const link = await friendsCollection.findOne({
+        _id: reqObjId,
+        recipientId: userId,
+        status: "pending",
+      });
+
+      if (!link) {
+        res.status(404).json({ error: "Convite de amizade nao encontrado." });
+        return;
+      }
+
+      await friendsCollection.updateOne({ _id: reqObjId }, { $set: { status: "accepted" } });
+
+      const senderUser = await usersCollection.findOne({ _id: link.requesterId });
+
+      res.json({
+        message: "Convite de amizade aceito!",
+        friend: senderUser
+          ? {
+              id: senderUser._id.toHexString(),
+              name: senderUser.name,
+              avatarUrl: senderUser.avatarUrl || null,
+              status: "online",
+              currentGame: "No PlatOne",
+              lastSeen: "Online agora",
+            }
+          : null,
+      });
+    } catch (error) {
+      console.error("Accept friend request error:", error);
+      res.status(500).json({ error: "Erro ao aceitar convite de amizade." });
+    }
+  });
+
+  app.post("/api/friends/requests/:requestId/reject", authMiddleware, async (req: AuthedRequest, res) => {
+    try {
+      const userId = req.user?._id;
+      const requestIdStr = req.params?.requestId;
+      if (!userId || !requestIdStr) {
+        res.status(400).json({ error: "Requisicao invalida." });
+        return;
+      }
+
+      let reqObjId: ObjectId;
+      try {
+        reqObjId = new ObjectId(requestIdStr);
+      } catch {
+        res.status(400).json({ error: "ID de convite invalido." });
+        return;
+      }
+
+      await friendsCollection.deleteOne({
+        _id: reqObjId,
+        $or: [{ recipientId: userId }, { requesterId: userId }],
+      });
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Reject friend request error:", error);
+      res.status(500).json({ error: "Erro ao recusar convite de amizade." });
     }
   });
 
@@ -912,7 +1070,13 @@ async function startServer() {
         return;
       }
 
-      await friendsCollection.deleteOne({ userId, friendUserId: friendObjId });
+      await friendsCollection.deleteMany({
+        $or: [
+          { requesterId: userId, recipientId: friendObjId },
+          { requesterId: friendObjId, recipientId: userId },
+        ],
+      });
+
       res.status(204).send();
     } catch (error) {
       console.error("Remove friend error:", error);
@@ -928,6 +1092,12 @@ async function startServer() {
         res.status(400).json({ error: "Requisicao invalida." });
         return;
       }
+
+      // Mark messages as read when opening chat
+      await chatMessagesCollection.updateMany(
+        { senderId: friendId, receiverId: userIdStr, read: { $ne: true } },
+        { $set: { read: true } }
+      );
 
       const messages = await chatMessagesCollection
         .find({
@@ -969,6 +1139,7 @@ async function startServer() {
         senderId: userIdStr,
         receiverId: friendId,
         content,
+        read: false,
         createdAt: new Date(),
       };
 

@@ -1,6 +1,7 @@
 import { House, LogOut, Moon, Settings2, Sun, type LucideIcon, UserRound, Users } from 'lucide-react';
 
 import BrandLogo from './BrandLogo';
+import HeaderNotificationsDropdown from './HeaderNotificationsDropdown';
 
 export type AppTopBarPath = '/home' | '/profile' | '/settings';
 
@@ -14,6 +15,11 @@ type AppTopBarProps = {
   onToggleTheme: () => void;
   onToggleFriendsSidebar?: () => void;
   isFriendsSidebarOpen?: boolean;
+  incomingRequestsCount?: number;
+  unreadMessagesCount?: number;
+  authToken?: string | null;
+  onRefreshRequests?: () => void;
+  onOpenChatWithFriend?: (friendId: string, friendName: string, avatarUrl?: string | null) => void;
 };
 
 type NavItem = {
@@ -38,6 +44,11 @@ export default function AppTopBar({
   onToggleTheme,
   onToggleFriendsSidebar,
   isFriendsSidebarOpen,
+  incomingRequestsCount = 0,
+  unreadMessagesCount = 0,
+  authToken,
+  onRefreshRequests,
+  onOpenChatWithFriend,
 }: AppTopBarProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-black/10 dark:border-white/10 bg-[var(--bg-main)]">
@@ -81,6 +92,14 @@ export default function AppTopBar({
               </span>
             </button>
           )}
+
+          <HeaderNotificationsDropdown
+            authToken={authToken || null}
+            incomingRequestsCount={incomingRequestsCount}
+            unreadMessagesCount={unreadMessagesCount}
+            onRefreshRequests={onRefreshRequests}
+            onOpenChatWithFriend={onOpenChatWithFriend}
+          />
 
           <button
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-black/10 dark:border-white/10 bg-transparent text-[var(--text-main)] transition-colors hover:bg-black/5 dark:hover:bg-white/10"
@@ -128,7 +147,7 @@ export default function AppTopBar({
 
             {onToggleFriendsSidebar && (
               <button
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+                className={`relative inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
                   isFriendsSidebarOpen
                     ? 'bg-[var(--ink-main)] text-white dark:bg-white dark:text-black font-semibold'
                     : 'border border-black/10 dark:border-white/10 text-[var(--text-soft)] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[var(--text-main)]'
@@ -136,9 +155,18 @@ export default function AppTopBar({
                 type="button"
                 onClick={onToggleFriendsSidebar}
                 aria-label="Amigos & Chat"
-                title="Amigos & Chat"
+                title={
+                  incomingRequestsCount > 0
+                    ? `${incomingRequestsCount} convite(s) de amizade pendente(s)`
+                    : 'Amigos & Chat'
+                }
               >
                 <Users size={15} />
+                {incomingRequestsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 font-mono text-[9px] font-bold text-white shadow-xs animate-pulse">
+                    {incomingRequestsCount > 9 ? '9+' : incomingRequestsCount}
+                  </span>
+                )}
                 <span className="sr-only">Amigos & Chat</span>
               </button>
             )}

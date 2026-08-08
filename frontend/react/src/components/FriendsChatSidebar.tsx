@@ -14,8 +14,9 @@ import {
   Sparkles,
   ChevronRight,
   Circle,
+  Check,
 } from 'lucide-react';
-import type { AuthUser, Friend, ChatMessage } from '../types/app';
+import type { AuthUser, Friend, ChatMessage, FriendRequest } from '../types/app';
 
 type FriendsChatSidebarProps = {
   isOpen: boolean;
@@ -23,6 +24,9 @@ type FriendsChatSidebarProps = {
   authToken: string | null;
   onClose: () => void;
   onNavigateToProfile: (username: string) => void;
+  onIncomingRequestsCountChange?: (count: number) => void;
+  onUnreadMessagesCountChange?: (count: number) => void;
+  activeChatFriend?: Friend | null;
 };
 
 export default function FriendsChatSidebar({
@@ -31,9 +35,14 @@ export default function FriendsChatSidebar({
   authToken,
   onClose,
   onNavigateToProfile,
+  onIncomingRequestsCountChange,
+  onUnreadMessagesCountChange,
+  activeChatFriend,
 }: FriendsChatSidebarProps) {
   const [activeTab, setActiveTab] = useState<'friends' | 'chat'>('friends');
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
+  const [outgoingRequests, setOutgoingRequests] = useState<FriendRequest[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(false);
   const [friendsError, setFriendsError] = useState<string | null>(null);
 
@@ -67,8 +76,20 @@ export default function FriendsChatSidebar({
           headers: { Authorization: `Bearer ${authToken}` },
         });
         if (!res.ok) throw new Error('Falha ao carregar lista de amigos.');
-        const data = (await res.json()) as { friends: Friend[] };
-        setFriends(data.friends || []);
+        const data = (await res.json()) as {
+          friends: Friend[];
+          incomingRequests?: FriendRequest[];
+          outgoingRequests?: FriendRequest[];
+        };
+        const loadedFriends = data.friends || [];
+        setFriends(loadedFriends);
+        const incoming = data.incomingRequests || [];
+        setIncomingRequests(incoming);
+        setOutgoingRequests(data.outgoingRequests || []);
+        onIncomingRequestsCountChange?.(incoming.length);
+
+        const totalUnread = loadedFriends.reduce((sum, f) => sum + (f.unreadCount || 0), 0);
+        onUnreadMessagesCountChange?.(totalUnread);
       } catch (err) {
         setFriendsError(err instanceof Error ? err.message : 'Erro ao carregar amigos.');
       } finally {
@@ -78,6 +99,14 @@ export default function FriendsChatSidebar({
 
     fetchFriends();
   }, [isOpen, authToken]);
+
+  // Handle opening specific chat if activeChatFriend is passed
+  useEffect(() => {
+    if (activeChatFriend && isOpen) {
+      setSelectedFriend(activeChatFriend);
+      setActiveTab('chat');
+    }
+  }, [activeChatFriend, isOpen]);
 
   // Fetch chat history when selectedFriend changes
   useEffect(() => {
@@ -134,15 +163,28 @@ export default function FriendsChatSidebar({
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Erro ao adicionar amigo.');
+        throw new Error(data.error || 'Erro ao enviar convite.');
       }
 
-      setAddMessage({ text: 'Amigo adicionado com sucesso!', isError: false });
-      if (data.friend) {
-        setFriends((prev) => [data.friend, ...prev.filter((f) => f.id !== data.friend.id)]);
-      }
+      setAddMessage({ text: data.message || 'Convite de amizade enviado!', isError: false });
       setAddInput('');
-      setTimeout(() => setAddMessage(null), 3000);
+      
+      // Refresh friends & requests
+      const resRefresh = await fetch('/api/friends', {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      if (resRefresh.ok) {
+        const dataRefresh = (await resRefresh.json()) as {
+          friends: Friend[];
+          incomingRequests?: FriendRequest[];
+          outgoingRequests?: FriendRequest[];
+        };
+        setFriends(dataRefresh.friends || []);
+        setIncomingRequests(dataRefresh.incomingRequests || []);
+        setOutgoingRequests(dataRefresh.outgoingRequests || []);
+      }
+
+      setTimeout(() => setAddMessage(null), 4000);
     } catch (err) {
       setAddMessage({
         text: err instanceof Error ? err.message : 'Falha ao adicionar amigo.',
@@ -150,6 +192,38 @@ export default function FriendsChatSidebar({
       });
     } finally {
       setAdding(false);
+    }
+  };
+
+  const handleAcceptRequest = async (requestId: string) => {
+    if (!authToken) return;
+    try {
+      const res = await fetch(`/api/friends/requests/${requestId}/accept`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      if (!res.ok) throw new Error('Falha ao aceitar convite.');
+      const data = await res.json();
+      setIncomingRequests((prev) => prev.filter((r) => r.id !== requestId));
+      if (data.friend) {
+        setFriends((prev) => [data.friend, ...prev]);
+      }
+    } catch (err) {
+      console.error('Accept request error:', err);
+    }
+  };
+
+  const handleRejectRequest = async (requestId: string) => {
+    if (!authToken) return;
+    try {
+      await fetch(`/api/friends/requests/${requestId}/reject`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      setIncomingRequests((prev) => prev.filter((r) => r.id !== requestId));
+      setOutgoingRequests((prev) => prev.filter((r) => r.id !== requestId));
+    } catch (err) {
+      console.error('Reject request error:', err);
     }
   };
 
@@ -276,7 +350,7 @@ export default function FriendsChatSidebar({
             <button
               type="button"
               onClick={() => setActiveTab('friends')}
-              className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-1.5 font-mono text-xs uppercase tracking-wider transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-1.5 font-mono text-xs uppercase tracking-wider transition-colors relative ${
                 activeTab === 'friends'
                   ? 'bg-[var(--bg-main)] font-bold text-[var(--text-main)] shadow-xs'
                   : 'text-[var(--text-soft)] hover:text-[var(--text-main)]'
@@ -284,12 +358,17 @@ export default function FriendsChatSidebar({
             >
               <Users size={13} />
               <span>Amigos ({friends.length})</span>
+              {incomingRequests.length > 0 && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500 font-mono text-[9px] font-bold text-white shadow-xs">
+                  {incomingRequests.length}
+                </span>
+              )}
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('chat')}
-              className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-1.5 font-mono text-xs uppercase tracking-wider transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-1.5 font-mono text-xs uppercase tracking-wider transition-colors relative ${
                 activeTab === 'chat'
                   ? 'bg-[var(--bg-main)] font-bold text-[var(--text-main)] shadow-xs'
                   : 'text-[var(--text-soft)] hover:text-[var(--text-main)]'
@@ -297,6 +376,11 @@ export default function FriendsChatSidebar({
             >
               <MessageSquare size={13} />
               <span>Chat</span>
+              {friends.reduce((sum, f) => sum + (f.unreadCount || 0), 0) > 0 && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500 font-mono text-[9px] font-bold text-white shadow-xs">
+                  {friends.reduce((sum, f) => sum + (f.unreadCount || 0), 0)}
+                </span>
+              )}
             </button>
           </div>
 
@@ -400,6 +484,86 @@ export default function FriendsChatSidebar({
 
               {/* Friends List Container */}
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                {/* Incoming Requests Section */}
+                {incomingRequests.length > 0 && (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 space-y-2 mb-2">
+                    <p className="font-mono text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1.5">
+                      <UserPlus size={12} />
+                      Convites Recebidos ({incomingRequests.length})
+                    </p>
+                    <div className="space-y-1.5">
+                      {incomingRequests.map((req) => (
+                        <div
+                          key={req.id}
+                          className="flex items-center justify-between rounded-md bg-[var(--bg-main)] p-2 border border-black/10 dark:border-white/10"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {req.user.avatarUrl ? (
+                              <img
+                                src={req.user.avatarUrl}
+                                alt={req.user.name}
+                                className="h-7 w-7 rounded-md object-cover border border-black/10 dark:border-white/15"
+                              />
+                            ) : (
+                              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--ink-main)] font-display text-[10px] font-bold text-white dark:bg-white dark:text-black">
+                                {req.user.name.slice(0, 2).toUpperCase()}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="font-semibold text-xs text-[var(--text-main)] truncate">{req.user.name}</p>
+                              <p className="text-[9px] text-[var(--text-soft)]">Quer ser seu amigo</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleAcceptRequest(req.id)}
+                              className="flex h-6 w-6 items-center justify-center rounded bg-emerald-600 text-white hover:opacity-90 transition-opacity"
+                              title="Aceitar convite"
+                            >
+                              <Check size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRejectRequest(req.id)}
+                              className="flex h-6 w-6 items-center justify-center rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                              title="Recusar convite"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Outgoing Requests Section */}
+                {outgoingRequests.length > 0 && (
+                  <div className="rounded-lg border border-black/10 dark:border-white/10 p-2 space-y-1 mb-2 bg-black/5 dark:bg-white/5">
+                    <p className="font-mono text-[9px] uppercase tracking-wider text-[var(--text-soft)] font-bold">
+                      Convites Enviados ({outgoingRequests.length})
+                    </p>
+                    {outgoingRequests.map((req) => (
+                      <div key={req.id} className="flex items-center justify-between text-xs py-0.5">
+                        <span className="truncate text-[var(--text-main)] font-medium">@{req.user.name}</span>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <span className="font-mono text-[9px] text-amber-500 uppercase">Aguardando</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRejectRequest(req.id)}
+                            className="text-[var(--text-soft)] hover:text-red-500 p-0.5"
+                            title="Cancelar convite"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {loadingFriends ? (
                   <div className="flex min-h-[120px] items-center justify-center">
                     <LoaderCircle size={20} className="animate-spin text-[var(--text-soft)]" />
@@ -408,7 +572,9 @@ export default function FriendsChatSidebar({
                   <p className="p-3 text-xs text-red-500 text-center">{friendsError}</p>
                 ) : filteredFriends.length === 0 ? (
                   <div className="p-6 text-center text-xs text-[var(--text-soft)]">
-                    Nenhum amigo encontrado.
+                    {incomingRequests.length > 0 || outgoingRequests.length > 0
+                      ? 'Nenhum amigo confirmado ainda.'
+                      : 'Nenhum amigo encontrado.'}
                   </div>
                 ) : (
                   filteredFriends.map((friend) => (
@@ -417,7 +583,7 @@ export default function FriendsChatSidebar({
                       className="group flex items-center justify-between rounded-lg border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 p-2 transition-all hover:bg-black/10 dark:hover:bg-white/10"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        {/* Avatar with Status Indicator */}
+                        {/* Avatar with Status Indicator & Unread Badge */}
                         <div className="relative h-8 w-8 flex-shrink-0">
                           {friend.avatarUrl ? (
                             <img
@@ -439,6 +605,11 @@ export default function FriendsChatSidebar({
                                 : 'bg-neutral-400'
                             }`}
                           />
+                          {friend.unreadCount && friend.unreadCount > 0 ? (
+                            <span className="absolute -top-1.5 -left-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 font-mono text-[8px] font-bold text-white ring-2 ring-[var(--bg-main)]">
+                              {friend.unreadCount}
+                            </span>
+                          ) : null}
                         </div>
 
                         {/* Friend Info */}
