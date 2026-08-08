@@ -137,9 +137,12 @@ export default function EmailVerificationModal({
 
       setSuccessMsg('E-mail verificado com sucesso!');
       setTimeout(() => {
-        if (onSuccess) onSuccess();
-        onClose();
-      }, 1500);
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          onClose();
+        }
+      }, 800);
     } catch (err: any) {
       setErrorMsg(err.message || 'Erro ao validar código.');
     } finally {
