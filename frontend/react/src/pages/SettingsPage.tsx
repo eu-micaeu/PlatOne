@@ -153,12 +153,6 @@ export default function SettingsPage({
             <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-soft)]">Email</p>
             <p className="mt-1 font-semibold text-[var(--text-main)]">{user?.email}</p>
           </div>
-          <div className="sm:col-span-2">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-soft)]">Conta criada em</p>
-            <p className="mt-1 text-sm font-semibold text-[var(--text-main)]">
-              {user?.createdAt ? formatDateTime(user.createdAt) : 'Não informado'}
-            </p>
-          </div>
         </div>
       </motion.section>
 

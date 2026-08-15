@@ -4,6 +4,7 @@ import { CheckCircle2, Clock3, LoaderCircle, Moon, Sun, Trophy, X } from 'lucide
 
 import BrandLogo from './components/BrandLogo';
 import AppTopBar from './components/AppTopBar';
+import AppFooter from './components/AppFooter';
 import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
@@ -1101,7 +1102,7 @@ export default function App() {
 
   if (!isAuthenticated && isPublicProfileRoute) {
     return (
-      <>
+      <div className="flex min-h-screen flex-col bg-[var(--bg-main)]">
         <header className="sticky top-0 z-40 border-b border-black/10 dark:border-white/10 bg-[var(--bg-main)]">
           <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
             <div className="flex items-center gap-3">
@@ -1261,13 +1262,14 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+        <AppFooter />
         <CookieModal />
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="flex min-h-screen flex-col bg-[var(--bg-main)]">
       <AppTopBar
         userName={user?.name}
         userAvatarUrl={user?.avatarUrl}
@@ -1339,7 +1341,6 @@ export default function App() {
             handleGameImageError={handleGameImageError}
             formatDateTime={formatDateTime}
             isReadOnly={isPublicProfileRoute}
-            onOpenAvatarModal={() => setIsAvatarModalOpen(true)}
             onOpenPinnedModal={() => setIsPinnedModalOpen(true)}
           />
         ) : (
@@ -1498,8 +1499,9 @@ export default function App() {
         onUnreadMessagesCountChange={setUnreadMessagesCount}
         activeChatFriend={activeChatFriend}
       />
+      {routePath !== '/' && <AppFooter />}
       <CookieModal />
-    </>
+    </div>
   );
 }
 

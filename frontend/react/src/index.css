@@ -188,10 +188,6 @@ select {
   background-color: var(--surface-soft) !important;
 }
 
-:root[data-theme='dark'] footer img {
-  filter: brightness(0) invert(1);
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
