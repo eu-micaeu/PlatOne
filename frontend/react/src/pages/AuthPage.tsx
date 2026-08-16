@@ -79,9 +79,6 @@ export default function AuthPage({
               </div>
               <div>
                 <p className="font-display text-xl font-bold tracking-tight">PlatOne</p>
-                <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-soft)]">
-                  Trophy Command Deck
-                </p>
               </div>
             </div>
 
