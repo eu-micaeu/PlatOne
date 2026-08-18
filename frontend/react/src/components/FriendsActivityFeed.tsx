@@ -167,16 +167,16 @@ export default function FriendsActivityFeed({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, delay: index * 0.04 }}
-              className="glass-panel p-4 border border-black/10 dark:border-white/10 hover:border-[var(--text-main)] transition-all"
+              className="glass-panel p-3.5 sm:p-4 border border-black/10 dark:border-white/10 hover:border-[var(--text-main)] transition-all"
             >
               {/* Header: Friend info */}
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-2.5">
                 <button
                   type="button"
                   onClick={() => onNavigateToProfile(item.friendName)}
-                  className="flex items-center gap-2.5 text-left group"
+                  className="flex items-center gap-2.5 text-left group min-w-0"
                 >
-                  <div className="h-9 w-9 overflow-hidden rounded-full border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 flex-shrink-0">
+                  <div className="h-8 w-8 sm:h-9 sm:w-9 overflow-hidden rounded-full border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 flex-shrink-0">
                     {item.friendAvatarUrl ? (
                       <img src={item.friendAvatarUrl} alt={item.friendName} className="h-full w-full object-cover" />
                     ) : (
@@ -185,41 +185,41 @@ export default function FriendsActivityFeed({
                       </div>
                     )}
                   </div>
-                  <div>
-                    <span className="font-display text-sm font-bold text-[var(--text-main)] group-hover:underline">
+                  <div className="min-w-0">
+                    <span className="font-display text-xs sm:text-sm font-bold text-[var(--text-main)] group-hover:underline truncate block">
                       {item.friendName}
                     </span>
-                    <span className="ml-2 font-mono text-[10px] text-[var(--text-soft)]">
+                    <span className="font-mono text-[9px] sm:text-[10px] text-[var(--text-soft)]">
                       {formatTimeAgo(item.timestamp)}
                     </span>
                   </div>
                 </button>
 
-                <span className="rounded-md border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[var(--text-soft)] font-bold">
+                <span className="shrink-0 rounded-md border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[var(--text-soft)] font-bold">
                   {item.platform}
                 </span>
               </div>
 
               {/* Body: Game & Achievement highlight */}
-              <div className="mt-3.5 flex items-center gap-3.5 rounded-xl border border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 p-3">
+              <div className="mt-3 flex items-center gap-3 rounded-xl border border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 p-2.5 sm:p-3">
                 <img
                   src={item.gameIcon}
                   alt={item.gameTitle}
-                  className="h-14 w-14 rounded-lg object-cover border border-black/10 dark:border-white/15 flex-shrink-0 shadow-xs"
+                  className="h-12 w-12 sm:h-14 sm:w-14 rounded-lg object-cover border border-black/10 dark:border-white/15 flex-shrink-0 shadow-xs"
                 />
                 <div className="min-w-0 flex-1">
-                  <h4 className="font-display text-sm font-bold text-[var(--text-main)] truncate">
+                  <h4 className="font-display text-xs sm:text-sm font-bold text-[var(--text-main)] truncate">
                     {item.gameTitle}
                   </h4>
 
                   {item.isPlatinum ? (
-                    <div className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 font-mono text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">
-                      <Trophy size={12} />
-                      <span>Conquistou a Platina! (100%)</span>
+                    <div className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 font-mono text-[9px] sm:text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">
+                      <Trophy size={11} />
+                      <span>Platinou! 100% 🏆</span>
                     </div>
                   ) : (
-                    <div className="mt-1 flex items-center gap-2">
-                      <div className="h-1.5 flex-1 max-w-[120px] overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
+                    <div className="mt-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <div className="h-1.5 w-full sm:max-w-[120px] overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
                         <div
                           className="h-full bg-[var(--text-main)]"
                           style={{
@@ -227,7 +227,7 @@ export default function FriendsActivityFeed({
                           }}
                         />
                       </div>
-                      <span className="font-mono text-[10px] text-[var(--text-soft)] font-medium">
+                      <span className="font-mono text-[9px] sm:text-[10px] text-[var(--text-soft)] font-medium">
                         {item.unlockedCount}/{item.totalAchievements} ({Math.round((item.unlockedCount / item.totalAchievements) * 100)}%)
                       </span>
                     </div>
@@ -236,25 +236,25 @@ export default function FriendsActivityFeed({
               </div>
 
               {/* Footer: Reactions */}
-              <div className="mt-3 flex items-center justify-between border-t border-black/5 dark:border-white/5 pt-2.5 text-xs">
+              <div className="mt-2.5 flex items-center justify-between border-t border-black/5 dark:border-white/5 pt-2 text-xs">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => toggleLike(item.id)}
-                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-mono text-xs transition-all ${
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-mono text-xs transition-all active:scale-95 ${
                       reaction.userLiked
                         ? 'bg-red-500/10 text-red-500 font-bold border border-red-500/20'
                         : 'text-[var(--text-soft)] hover:text-red-500 hover:bg-black/5 dark:hover:bg-white/5'
                     }`}
                   >
-                    <Heart size={13} className={reaction.userLiked ? 'fill-red-500' : ''} />
+                    <Heart size={14} className={reaction.userLiked ? 'fill-red-500' : ''} />
                     <span>{reaction.count}</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => toggleLike(item.id)}
-                    className="inline-flex items-center gap-1 rounded-lg px-2 py-1 font-mono text-xs text-[var(--text-soft)] hover:text-amber-500 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 font-mono text-xs text-[var(--text-soft)] hover:text-amber-500 hover:bg-black/5 dark:hover:bg-white/5 transition-colors active:scale-95"
                   >
                     <Trophy size={13} />
                     <span>Parabéns</span>

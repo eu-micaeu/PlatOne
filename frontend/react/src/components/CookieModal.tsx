@@ -4,7 +4,11 @@ import { Cookie, X } from 'lucide-react';
 
 const COOKIE_CONSENT_KEY = 'platone.cookie.consent';
 
-export default function CookieModal() {
+type CookieModalProps = {
+  hasBottomNav?: boolean;
+};
+
+export default function CookieModal({ hasBottomNav = false }: CookieModalProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -30,10 +34,14 @@ export default function CookieModal() {
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          className="fixed bottom-0 left-0 right-0 z-50 w-full border-t border-black/10 dark:border-white/10 bg-[var(--bg-main)]/95 backdrop-blur-md px-4 py-2.5 shadow-2xl sm:px-6 lg:px-8"
-          initial={{ opacity: 0, y: '100%' }}
+          className={`fixed z-50 border-t border-black/10 dark:border-white/10 bg-[var(--bg-main)]/95 backdrop-blur-md px-4 py-2.5 shadow-2xl sm:px-6 lg:px-8 ${
+            hasBottomNav
+              ? 'bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-0 left-2 right-2 md:left-0 md:right-0 rounded-2xl md:rounded-none'
+              : 'bottom-0 left-0 right-0 w-full pb-[max(0.75rem,env(safe-area-inset-bottom))]'
+          }`}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: '100%' }}
+          exit={{ opacity: 0, y: 20 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
         >
           <div className="mx-auto flex w-full max-w-5xl flex-col items-start justify-between gap-2.5 sm:flex-row sm:items-center">

@@ -88,25 +88,25 @@ export default function PinnedPlatinumsModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-xs">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="w-full max-w-2xl rounded-2xl border border-black/10 dark:border-white/10 bg-[var(--bg-main)] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+          className="w-full max-w-2xl rounded-2xl border border-black/10 dark:border-white/10 bg-[var(--bg-main)] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 p-4 sm:p-5">
+          <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 p-3.5 sm:p-5">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--ink-main)] text-white dark:bg-white dark:text-black">
+              <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-[var(--ink-main)] text-white dark:bg-white dark:text-black shrink-0">
                 <Award size={18} />
               </div>
-              <div>
-                <h2 className="font-display text-lg font-bold text-[var(--text-main)]">
+              <div className="min-w-0">
+                <h2 className="font-display text-base sm:text-lg font-bold text-[var(--text-main)] truncate">
                   Vitrine de Platinas (Destaques)
                 </h2>
-                <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-soft)]">
-                  Selecione até 3 platinas para exibir no topo do seu perfil ({selectedIds.length}/3)
+                <p className="font-mono text-[9px] sm:text-[10px] uppercase tracking-wider text-[var(--text-soft)]">
+                  Selecione até 3 platinas ({selectedIds.length}/3)
                 </p>
               </div>
             </div>
@@ -114,15 +114,16 @@ export default function PinnedPlatinumsModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1.5 text-[var(--text-soft)] hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+              className="rounded-lg p-1.5 text-[var(--text-soft)] hover:text-[var(--text-main)] hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
               title="Fechar"
+              aria-label="Fechar"
             >
               <X size={18} />
             </button>
           </div>
 
           {/* Search bar */}
-          <div className="p-4 border-b border-black/10 dark:border-white/10">
+          <div className="p-3 sm:p-4 border-b border-black/10 dark:border-white/10">
             <div className="relative">
               <Search
                 size={15}
@@ -133,7 +134,7 @@ export default function PinnedPlatinumsModal({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar platinas na sua coleção..."
-                className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 pl-9 pr-4 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--text-main)] transition-colors"
+                className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 pl-9 pr-4 py-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--text-main)] transition-colors"
               />
             </div>
 

@@ -316,13 +316,13 @@ export default function FriendsChatSidebar({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-            className="fixed right-0 top-0 bottom-0 z-50 flex w-[320px] max-w-full flex-col border-l border-black/10 dark:border-white/10 bg-[var(--bg-main)] pointer-events-auto"
+            className="fixed right-0 top-0 bottom-0 z-50 flex w-full sm:w-[380px] max-w-full flex-col border-l border-black/10 dark:border-white/10 bg-[var(--bg-main)] pointer-events-auto shadow-2xl"
           >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 p-2.5 sm:p-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--ink-main)] text-white dark:bg-white dark:text-black">
-                <Users size={14} />
+          <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 p-3 sm:p-3.5">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--ink-main)] text-white dark:bg-white dark:text-black">
+                <Users size={15} />
               </div>
               <div>
                 <h2 className="font-display text-sm font-bold tracking-tight text-[var(--text-main)]">
@@ -337,10 +337,11 @@ export default function FriendsChatSidebar({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1 text-[var(--text-soft)] hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+              className="flex h-8 w-8 items-center justify-center rounded-lg p-1.5 text-[var(--text-soft)] hover:text-[var(--text-main)] hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
               title="Fechar sidebar"
+              aria-label="Fechar sidebar"
             >
-              <X size={16} />
+              <X size={18} />
             </button>
           </div>
 
@@ -809,19 +810,20 @@ export default function FriendsChatSidebar({
                   </div>
 
                   {/* Input Bar */}
-                  <form onSubmit={handleSendMessage} className="p-3 border-t border-black/10 dark:border-white/10">
+                  <form onSubmit={handleSendMessage} className="p-3 pb-[max(0.75rem,calc(0.75rem+env(safe-area-inset-bottom)))] border-t border-black/10 dark:border-white/10 bg-[var(--bg-main)]">
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
                         value={messageInput}
                         onChange={(e) => setMessageInput(e.target.value)}
                         placeholder={`Mensagem para ${selectedFriend.name}...`}
-                        className="flex-1 rounded-xl border border-black/10 dark:border-white/10 bg-transparent px-3.5 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--text-main)]"
+                        className="flex-1 rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 px-3.5 py-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--text-main)] transition-colors"
                       />
                       <button
                         type="submit"
                         disabled={!messageInput.trim() || sending}
-                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--ink-main)] text-white dark:bg-white dark:text-black font-medium transition-opacity hover:opacity-90 disabled:opacity-40"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--ink-main)] text-white dark:bg-white dark:text-black font-medium transition-opacity hover:opacity-90 disabled:opacity-40"
+                        aria-label="Enviar mensagem"
                       >
                         <Send size={15} />
                       </button>

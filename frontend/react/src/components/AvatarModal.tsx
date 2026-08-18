@@ -154,7 +154,7 @@ export default function AvatarModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -168,10 +168,10 @@ export default function AvatarModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.2 }}
-          className="relative w-full max-w-md overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 bg-[var(--bg-main)] p-6 shadow-2xl z-10"
+          className="relative w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-2xl border border-black/10 dark:border-white/10 bg-[var(--bg-main)] p-4 sm:p-6 shadow-2xl z-10"
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-4">
+          <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-3 sm:pb-4">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--ink-main)] text-white dark:bg-white dark:text-black">
                 <Camera size={16} />

@@ -199,3 +199,50 @@ select {
   }
 }
 
+/* Mobile Touch & Scroll Utilities */
+html {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+body {
+  -webkit-overflow-scrolling: touch;
+}
+
+.no-scrollbar,
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+@supports (padding: max(0px)) {
+  .pb-safe-bottom-nav {
+    padding-bottom: max(4.5rem, calc(4rem + env(safe-area-inset-bottom)));
+  }
+}
+
+@media (max-width: 640px) {
+  /* Prevent iOS zoom on input focus while maintaining crisp styling */
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="search"],
+  input[type="url"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+

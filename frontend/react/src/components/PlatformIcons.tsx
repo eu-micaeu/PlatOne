@@ -312,25 +312,30 @@ export function PlatformStatusCards() {
 
 export function PlatformMobileChips() {
   return (
-    <div className="mb-4 lg:hidden rounded-lg border border-black/10 dark:border-white/10 p-2.5 bg-black/5 dark:bg-white/5">
-      <p className="font-mono text-[9px] uppercase tracking-widest text-[var(--text-soft)] mb-2">
-        Plataformas
-      </p>
-      <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
-        <div className="flex shrink-0 items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-[var(--text-main)]">
+    <div className="mb-4 lg:hidden rounded-xl border border-black/10 dark:border-white/10 p-2.5 bg-black/5 dark:bg-white/5">
+      <div className="flex items-center justify-between mb-2">
+        <p className="font-mono text-[9px] uppercase tracking-widest text-[var(--text-soft)]">
+          // Plataformas Suportadas
+        </p>
+        <span className="font-mono text-[9px] text-[var(--text-soft)]">Sincronização</span>
+      </div>
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
+        <div className="flex shrink-0 items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-[var(--text-main)]">
           <SteamIcon className="h-3.5 w-3.5" />
           <span>Steam</span>
-          <span className="text-[9px] font-mono uppercase bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-semibold">Conectável</span>
+          <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[9px] font-mono uppercase text-emerald-600 dark:text-emerald-400 font-semibold">Ativo</span>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-[var(--text-main)]">
+        <div className="flex shrink-0 items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-[var(--text-main)]">
           <XboxIcon className="h-3.5 w-3.5" />
           <span>Xbox</span>
-          <span className="text-[9px] font-mono uppercase bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-semibold">Conectável</span>
+          <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[9px] font-mono uppercase text-emerald-600 dark:text-emerald-400 font-semibold">Ativo</span>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5 rounded-md border border-black/10 dark:border-white/10 px-2.5 py-1 text-xs text-[var(--text-soft)] opacity-85">
+        <div className="flex shrink-0 items-center gap-1.5 rounded-lg border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 px-2.5 py-1 text-xs text-[var(--text-soft)] opacity-85">
           <PlayStationIcon className="h-3.5 w-3.5" />
           <span>PlayStation</span>
-          <span className="text-[9px] font-mono uppercase bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded">Em breve</span>
+          <span className="text-[9px] font-mono uppercase text-[var(--text-soft)]">Em breve</span>
         </div>
       </div>
     </div>

@@ -17,19 +17,19 @@ export default function FeedPage({
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="glass-panel mb-6 p-6 sm:p-8"
+        className="glass-panel mb-4 sm:mb-6 p-4 sm:p-8"
       >
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="mb-2 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-[var(--text-soft)]">
+            <div className="mb-1 sm:mb-2 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-[var(--text-soft)]">
               <Sparkles size={12} className="text-amber-500" />
               <span>Social Activity</span>
             </div>
 
-            <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+            <h1 className="font-display text-2xl font-bold tracking-tight sm:text-4xl">
               Feed de Atividades
             </h1>
-            <p className="mt-1 text-sm text-[var(--text-soft)]">
+            <p className="mt-1 text-xs sm:text-sm text-[var(--text-soft)]">
               Acompanhe em tempo real as últimas platinas e conquistas desbloqueadas pelos seus amigos.
             </p>
           </div>

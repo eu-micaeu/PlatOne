@@ -112,7 +112,8 @@ export default function AppTopBar({
             <span className="sr-only">Alternar tema</span>
           </button>
 
-          <nav className="flex items-center gap-1.5" aria-label="Navegacao principal">
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-1.5" aria-label="Navegacao principal">
             <button
               className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
                 activePath === '/home'
@@ -203,6 +204,25 @@ export default function AppTopBar({
               <span className="sr-only">Configuracoes</span>
             </button>
           </nav>
+
+          {/* Quick Mobile Profile Avatar Button */}
+          {userName && (
+            <button
+              type="button"
+              onClick={() => onNavigate('/profile')}
+              className="inline-flex md:hidden h-9 w-9 items-center justify-center rounded-lg border border-black/10 dark:border-white/10 overflow-hidden"
+              aria-label="Meu Perfil"
+              title="Meu Perfil"
+            >
+              {userAvatarUrl ? (
+                <img src={userAvatarUrl} alt={userName} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-[var(--ink-main)] text-white dark:bg-white dark:text-black font-display text-[11px] font-bold">
+                  {userName.slice(0, 2).toUpperCase()}
+                </div>
+              )}
+            </button>
+          )}
 
           <button
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-black/10 dark:border-white/10 text-[var(--text-soft)] transition-colors hover:bg-black/5 dark:hover:bg-white/10 hover:text-red-500"

@@ -195,7 +195,7 @@ export default function EmailVerificationModal({
           }}
         >
           <motion.div
-            className="glass-panel relative w-full max-w-md overflow-hidden p-6 sm:p-8 shadow-2xl border border-black/10 dark:border-white/10 bg-[var(--bg-main)] text-[var(--text-main)]"
+            className="glass-panel relative w-full max-w-md overflow-hidden p-5 sm:p-8 shadow-2xl border border-black/10 dark:border-white/10 bg-[var(--bg-main)] text-[var(--text-main)]"
             initial={{ opacity: 0, scale: 0.95, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 12 }}
@@ -205,7 +205,7 @@ export default function EmailVerificationModal({
             {/* Botão Fechar */}
             <button
               type="button"
-              className="absolute right-4 top-4 rounded-lg p-1.5 text-[var(--text-soft)] hover:text-[var(--text-main)] hover:bg-black/5 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
+              className="absolute right-3.5 top-3.5 sm:right-4 sm:top-4 rounded-lg p-1.5 text-[var(--text-soft)] hover:text-[var(--text-main)] hover:bg-black/5 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
               onClick={onClose}
               disabled={isSubmitting}
               aria-label="Fechar modal"
@@ -236,7 +236,7 @@ export default function EmailVerificationModal({
             {/* Alertas de Erro ou Sucesso */}
             {errorMsg && (
               <motion.div
-                className="mt-4 flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-xs text-red-600 dark:text-red-400"
+                className="mt-4 flex items-center gap-2 rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-xs text-red-600 dark:text-red-400"
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
               >
@@ -247,7 +247,7 @@ export default function EmailVerificationModal({
 
             {successMsg && (
               <motion.div
-                className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs text-emerald-600 dark:text-emerald-400"
+                className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs text-emerald-600 dark:text-emerald-400"
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
               >
@@ -258,7 +258,7 @@ export default function EmailVerificationModal({
 
             {/* Formulário dos 6 Dígitos */}
             <form onSubmit={handleVerify} className="mt-6">
-              <div className="flex items-center justify-center gap-2 sm:gap-2.5">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2.5">
                 {digits.map((digit, index) => (
                   <input
                     key={index}
@@ -270,7 +270,7 @@ export default function EmailVerificationModal({
                     onChange={(e) => handleDigitChange(index, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(index, e)}
                     disabled={isSubmitting || !!successMsg}
-                    className="h-12 w-11 sm:h-14 sm:w-12 rounded-xl border border-black/15 dark:border-white/15 bg-black/5 dark:bg-white/5 text-center font-mono text-xl font-bold text-[var(--text-main)] transition-all focus:border-[var(--text-main)] focus:bg-transparent focus:outline-none focus:ring-1 focus:ring-[var(--text-main)] disabled:opacity-50 shadow-xs"
+                    className="h-11 w-9 sm:h-14 sm:w-12 rounded-xl border border-black/15 dark:border-white/15 bg-black/5 dark:bg-white/5 text-center font-mono text-lg sm:text-xl font-bold text-[var(--text-main)] transition-all focus:border-[var(--text-main)] focus:bg-transparent focus:outline-none focus:ring-1 focus:ring-[var(--text-main)] disabled:opacity-50 shadow-xs"
                   />
                 ))}
               </div>
