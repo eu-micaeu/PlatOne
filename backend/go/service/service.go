@@ -386,8 +386,8 @@ func (s *platService) syncSteamGame(ctx context.Context, steamID string, game st
 		title = "Steam App " + appID
 	}
 
-	iconURL := steamCapsuleURL(game.AppID)
-	fallbackIconURL := steamCommunityIconURL(game.AppID, game.ImgIconURL)
+	iconURL := steamHeroURL(game.AppID)
+	fallbackIconURL := steamCapsuleURL(game.AppID)
 	if iconURL == "" {
 		iconURL = fallbackIconURL
 	}
@@ -489,12 +489,20 @@ func (s *platService) callSteamAPI(ctx context.Context, endpoint string, params 
 	return nil
 }
 
+func steamHeroURL(appID int) string {
+	if appID <= 0 {
+		return ""
+	}
+
+	return "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/" + strconv.Itoa(appID) + "/library_hero.jpg"
+}
+
 func steamCapsuleURL(appID int) string {
 	if appID <= 0 {
 		return ""
 	}
 
-	return "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/" + strconv.Itoa(appID) + "/capsule_616x353.jpg"
+	return "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/" + strconv.Itoa(appID) + "/capsule_616x353.jpg"
 }
 
 func steamCommunityIconURL(appID int, iconHash string) string {

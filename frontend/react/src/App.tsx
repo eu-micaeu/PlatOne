@@ -10,7 +10,6 @@ import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
-import FeedPage from './pages/FeedPage';
 import ConfirmLogoutModal from './components/ConfirmLogoutModal';
 import ConfirmDeleteAccountModal from './components/ConfirmDeleteAccountModal';
 import CookieModal from './components/CookieModal';
@@ -18,6 +17,7 @@ import AvatarModal from './components/AvatarModal';
 import PinnedPlatinumsModal from './components/PinnedPlatinumsModal';
 import EmailVerificationModal from './components/EmailVerificationModal';
 import FriendsChatSidebar from './components/FriendsChatSidebar';
+import { createSteamCapsuleArtwork, resolvePreferredGameArtwork } from './utils/gameArtwork';
 import type {
   Achievement,
   AuthMode,
@@ -47,7 +47,7 @@ const DEFAULT_XBOX_STATUS: XboxStatus = {
   linkedAt: null,
 };
 
-type AppRoute = '/' | '/home' | '/feed' | '/login' | '/register' | '/profile' | '/settings' | `/profile/${string}`;
+type AppRoute = '/' | '/home' | '/login' | '/register' | '/profile' | '/settings' | `/profile/${string}`;
 type ThemeMode = 'light' | 'dark';
 
 export default function App() {
@@ -121,7 +121,6 @@ export default function App() {
   const isOwnProfileRoute = routePath === '/profile';
   const isProfileRoute = isOwnProfileRoute || isPublicProfileRoute;
   const isSettingsRoute = routePath === '/settings';
-  const isFeedRoute = routePath === '/feed';
   const isLoginRoute = routePath === '/' || routePath === '/login';
   const isRegisterRoute = routePath === '/register';
   const isPublicRoute = isLoginRoute || isRegisterRoute || isPublicProfileRoute;
@@ -1047,9 +1046,7 @@ export default function App() {
 
   const activeTopBarPath = isHomeRoute
     ? '/home'
-    : isFeedRoute
-      ? '/feed'
-      : isOwnProfileRoute
+    : isOwnProfileRoute
         ? '/profile'
         : isSettingsRoute
           ? '/settings'
@@ -1316,11 +1313,6 @@ export default function App() {
             formatDateTime={formatDateTime}
             onOpenAvatarModal={() => setIsAvatarModalOpen(true)}
           />
-        ) : isFeedRoute ? (
-          <FeedPage
-            authToken={authToken}
-            onNavigateToProfile={(profileName) => navigateTo(`/profile/${encodeURIComponent(profileName)}`)}
-          />
         ) : isProfileRoute ? (
           <ProfilePage
             user={profileUser}
@@ -1548,11 +1540,6 @@ function AchievementRow({ achievement }: { key?: string; achievement: Achievemen
           )}
         </div>
         {achievement.description && <p className="mt-0.5 text-xs text-[var(--text-soft)]">{achievement.description}</p>}
-        {achievement.achieved && achievement.unlockTime && (
-          <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-            Desbloqueada em {formatDateTime(achievement.unlockTime)}
-          </p>
-        )}
       </div>
     </div>
   );
@@ -1601,10 +1588,6 @@ function normalizePath(pathname: string): AppRoute {
 
   if (pathname === '/settings') {
     return '/settings';
-  }
-
-  if (pathname === '/feed') {
-    return '/feed';
   }
 
   if (pathname === '/home') {
@@ -1841,7 +1824,11 @@ function normalizePlatinum(entry: unknown, index: number): Platinum {
     storedIcon ??
     storedBackupIcon ??
     fallbackIcon;
-  const backupIcon = pickBackupGameArtwork(icon, storedBackupIcon ?? storedIcon, fallbackIcon);
+  const artworkBackup =
+    platform.toLowerCase() === 'steam'
+      ? createSteamCapsuleArtwork(externalId) ?? storedBackupIcon ?? storedIcon
+      : storedBackupIcon ?? storedIcon;
+  const backupIcon = pickBackupGameArtwork(icon, artworkBackup, fallbackIcon);
 
   return {
     id,
@@ -1949,18 +1936,6 @@ function normalizePublicUser(payload: unknown, fallbackName: string): AuthUser {
   };
 }
 
-function resolvePreferredGameArtwork(
-  platform: string,
-  externalId: string | undefined,
-  image: string | undefined
-): string | undefined {
-  if (platform.toLowerCase() !== 'steam') {
-    return image;
-  }
-
-  return createSteamCapsuleArtwork(externalId) ?? upgradeSteamCommunityIcon(image) ?? image;
-}
-
 function pickBackupGameArtwork(
   primaryImage: string,
   backupCandidate: string | undefined,
@@ -1971,28 +1946,6 @@ function pickBackupGameArtwork(
   }
 
   return fallbackIcon !== primaryImage ? fallbackIcon : null;
-}
-
-function createSteamCapsuleArtwork(appId: string | undefined): string | null {
-  const normalizedAppId = appId?.trim() ?? '';
-  if (!/^\d+$/.test(normalizedAppId)) {
-    return null;
-  }
-
-  return `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${normalizedAppId}/capsule_616x353.jpg`;
-}
-
-function upgradeSteamCommunityIcon(image: string | undefined): string | undefined {
-  if (!image) {
-    return undefined;
-  }
-
-  const match = image.match(/\/apps\/(\d+)\/[^/]+\.jpg(?:\?.*)?$/i);
-  if (!match) {
-    return image;
-  }
-
-  return createSteamCapsuleArtwork(match[1]) ?? image;
 }
 
 function createFallbackIcon(title: string): string {

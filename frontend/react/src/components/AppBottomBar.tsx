@@ -1,4 +1,4 @@
-import { House, Settings2, Sparkles, UserRound, Users, type LucideIcon } from 'lucide-react';
+import { House, Settings2, UserRound, Users, type LucideIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { AppTopBarPath } from './AppTopBar';
 
@@ -14,7 +14,7 @@ type AppBottomBarProps = {
 };
 
 type BottomNavItem = {
-  id: 'home' | 'feed' | 'friends' | 'profile' | 'settings';
+  id: 'home' | 'friends' | 'profile' | 'settings';
   label: string;
   path?: AppTopBarPath;
   icon: LucideIcon;
@@ -23,7 +23,6 @@ type BottomNavItem = {
 
 const BOTTOM_ITEMS: BottomNavItem[] = [
   { id: 'home', label: 'Início', path: '/home', icon: House },
-  { id: 'feed', label: 'Feed', path: '/feed', icon: Sparkles },
   { id: 'friends', label: 'Amigos', icon: Users, isAction: true },
   { id: 'profile', label: 'Perfil', path: '/profile', icon: UserRound },
   { id: 'settings', label: 'Ajustes', path: '/settings', icon: Settings2 },

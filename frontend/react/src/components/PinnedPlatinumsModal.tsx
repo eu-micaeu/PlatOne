@@ -173,6 +173,24 @@ export default function PinnedPlatinumsModal({
                         src={game.icon}
                         alt={game.title}
                         className="h-12 w-12 rounded-lg object-cover border border-black/10 dark:border-white/15 flex-shrink-0"
+                        data-backup-src={game.backupIcon ?? ''}
+                        data-fallback-src={game.fallbackIcon}
+                        onError={(event) => {
+                          const image = event.currentTarget;
+                          const currentSrc = image.getAttribute('src') ?? '';
+                          const backupSrc = image.dataset.backupSrc?.trim() ?? '';
+                          const fallbackSrc = image.dataset.fallbackSrc?.trim() ?? '';
+
+                          if (backupSrc && backupSrc !== currentSrc) {
+                            image.setAttribute('src', backupSrc);
+                            image.dataset.backupSrc = '';
+                          } else if (fallbackSrc && fallbackSrc !== currentSrc) {
+                            image.setAttribute('src', fallbackSrc);
+                            image.dataset.fallbackSrc = '';
+                          } else {
+                            image.onerror = null;
+                          }
+                        }}
                       />
                       <div className="min-w-0 flex-1 pr-6">
                         <p className="font-bold text-xs text-[var(--text-main)] truncate">{game.title}</p>
